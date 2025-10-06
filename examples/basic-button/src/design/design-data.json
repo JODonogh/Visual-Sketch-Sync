@@ -1,0 +1,143 @@
+{
+  "canvas": {
+    "width": 800,
+    "height": 600,
+    "backgroundColor": "#ffffff",
+    "grid": {
+      "size": 8,
+      "visible": true,
+      "snapToGrid": true
+    }
+  },
+  "layers": [
+    {
+      "id": "layer_001",
+      "name": "Buttons",
+      "visible": true,
+      "locked": false,
+      "elements": ["button_primary", "button_secondary", "button_outline"]
+    }
+  ],
+  "elements": [
+    {
+      "id": "button_primary",
+      "type": "rectangle",
+      "name": "Primary Button",
+      "position": { "x": 50, "y": 50 },
+      "size": { "width": 120, "height": 40 },
+      "style": {
+        "fill": "#007bff",
+        "stroke": "#0056b3",
+        "strokeWidth": 1,
+        "borderRadius": 8
+      },
+      "layerId": "layer_001",
+      "componentType": "button",
+      "props": {
+        "variant": "primary",
+        "size": "medium"
+      }
+    },
+    {
+      "id": "button_text_primary",
+      "type": "text",
+      "name": "Button Text",
+      "position": { "x": 110, "y": 70 },
+      "content": "Click me",
+      "style": {
+        "fontSize": 16,
+        "fontFamily": "system-ui",
+        "fontWeight": 500,
+        "fill": "#ffffff",
+        "textAlign": "center"
+      },
+      "layerId": "layer_001",
+      "parentId": "button_primary"
+    },
+    {
+      "id": "button_secondary",
+      "type": "rectangle",
+      "name": "Secondary Button",
+      "position": { "x": 200, "y": 50 },
+      "size": { "width": 120, "height": 40 },
+      "style": {
+        "fill": "#6c757d",
+        "stroke": "#545b62",
+        "strokeWidth": 1,
+        "borderRadius": 8
+      },
+      "layerId": "layer_001",
+      "componentType": "button",
+      "props": {
+        "variant": "secondary",
+        "size": "medium"
+      }
+    },
+    {
+      "id": "button_outline",
+      "type": "rectangle",
+      "name": "Outline Button",
+      "position": { "x": 350, "y": 50 },
+      "size": { "width": 120, "height": 40 },
+      "style": {
+        "fill": "transparent",
+        "stroke": "#007bff",
+        "strokeWidth": 2,
+        "borderRadius": 8
+      },
+      "layerId": "layer_001",
+      "componentType": "button",
+      "props": {
+        "variant": "outline",
+        "size": "medium"
+      }
+    }
+  ],
+  "colorPalette": [
+    {
+      "name": "Primary Blue",
+      "color": "#007bff",
+      "usage": "primary buttons, links"
+    },
+    {
+      "name": "Primary Blue Dark",
+      "color": "#0056b3",
+      "usage": "button borders, hover states"
+    },
+    {
+      "name": "Secondary Gray",
+      "color": "#6c757d",
+      "usage": "secondary buttons, muted text"
+    },
+    {
+      "name": "White",
+      "color": "#ffffff",
+      "usage": "button text, backgrounds"
+    }
+  ],
+  "designTokens": {
+    "spacing": {
+      "xs": 4,
+      "sm": 8,
+      "md": 16,
+      "lg": 24,
+      "xl": 32
+    },
+    "colors": {
+      "primary": "#007bff",
+      "primaryDark": "#0056b3",
+      "secondary": "#6c757d",
+      "white": "#ffffff"
+    },
+    "borderRadius": {
+      "sm": 4,
+      "md": 8,
+      "lg": 12
+    },
+    "fontSize": {
+      "sm": 14,
+      "md": 16,
+      "lg": 18
+    }
+  }
+}

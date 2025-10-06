@@ -1,0 +1,226 @@
+{
+  "name": "vds-design-canvas",
+  "displayName": "VDS Design Canvas",
+  "description": "Visual Design Sync - Three-way synchronization between drawing canvas, VS Code, and live Chrome application",
+  "version": "0.1.0",
+  "publisher": "kiro",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other",
+    "Visualization"
+  ],
+  "keywords": [
+    "design",
+    "canvas",
+    "drawing",
+    "sync",
+    "tablet",
+    "stylus"
+  ],
+  "activationEvents": [
+    "onCommand:vds.openDrawingCanvas",
+    "onCommand:vds.startSyncServer",
+    "onWebviewPanel:vds.drawingCanvas",
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "vds.openDrawingCanvas",
+        "title": "Open Drawing Canvas",
+        "category": "VDS"
+      },
+      {
+        "command": "vds.startSyncServer",
+        "title": "Start Sync Server",
+        "category": "VDS"
+      },
+      {
+        "command": "vds.stopSyncServer",
+        "title": "Stop Sync Server",
+        "category": "VDS"
+      },
+      {
+        "command": "vds.exportDesign",
+        "title": "Export Design",
+        "category": "VDS"
+      },
+      {
+        "command": "vds.startLiveServer",
+        "title": "Start Live Server Integration",
+        "category": "VDS"
+      },
+      {
+        "command": "vds.debugChrome",
+        "title": "Debug Chrome for VDS",
+        "category": "VDS"
+      },
+      {
+        "command": "vds.captureDOMTree",
+        "title": "Capture DOM Tree from Chrome",
+        "category": "VDS"
+      },
+      {
+        "command": "vds.captureStylesheets",
+        "title": "Capture Stylesheets from Chrome",
+        "category": "VDS"
+      },
+      {
+        "command": "vds.runIntegrationTests",
+        "title": "Run Integration Tests",
+        "category": "VDS"
+      },
+      {
+        "command": "vds.runDiagnostics",
+        "title": "Run System Diagnostics",
+        "category": "VDS"
+      },
+      {
+        "command": "vds.runRecovery",
+        "title": "Run Recovery Tool",
+        "category": "VDS"
+      },
+      {
+        "command": "vds.clearCanvasHistory",
+        "title": "Clear Canvas History",
+        "category": "VDS"
+      },
+      {
+        "command": "vds.exportErrorLogs",
+        "title": "Export Error Logs",
+        "category": "VDS"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "vds.drawingCanvas",
+          "name": "VDS Drawing Canvas",
+          "type": "webview",
+          "when": "workspaceHasVDSProject"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "panel": [
+        {
+          "id": "vds.panel",
+          "title": "VDS Design",
+          "icon": "$(paintcan)"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "VDS Design Canvas",
+      "properties": {
+        "vds.canvas.width": {
+          "type": "number",
+          "default": 1920,
+          "description": "Default canvas width"
+        },
+        "vds.canvas.height": {
+          "type": "number",
+          "default": 1080,
+          "description": "Default canvas height"
+        },
+        "vds.tablet.pressureSensitivity": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable pressure sensitivity for tablets and stylus"
+        },
+        "vds.sync.autoStart": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically start sync server when opening VDS project"
+        },
+        "vds.sync.port": {
+          "type": "number",
+          "default": 3001,
+          "description": "Port for the sync server WebSocket connection"
+        },
+        "vds.liveServer.autoStart": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically start Live Server when opening VDS project"
+        },
+        "vds.chrome.debugPort": {
+          "type": "number",
+          "default": 9222,
+          "description": "Port for Chrome remote debugging"
+        }
+      }
+    }
+  },
+  "taskDefinitions": [
+    {
+      "type": "vds",
+      "required": [
+        "task"
+      ],
+      "properties": {
+        "task": {
+          "type": "string",
+          "description": "The VDS task to execute"
+        }
+      }
+    }
+  ],
+  "problemMatchers": [
+    {
+      "name": "vds-sync-server",
+      "owner": "vds",
+      "fileLocation": [
+        "relative",
+        "${workspaceFolder}"
+      ],
+      "pattern": {
+        "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+        "file": 1,
+        "line": 2,
+        "column": 3,
+        "severity": 4,
+        "message": 5
+      }
+    }
+  ],
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "diagnostics": "node scripts/vds-diagnostics.js",
+    "test:diagnostics": "node scripts/vds-diagnostics.js --format json",
+    "recovery": "node scripts/vds-recovery-tool.js",
+    "recovery:auto": "node scripts/vds-recovery-tool.js --auto-fix",
+    "health-check": "node scripts/vds-diagnostics.js && echo 'Run npm run recovery if issues found'",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "test:integration": "npm run test",
+    "test:unit": "mocha out/test/unit/**/*.test.js",
+    "coverage": "nyc npm run test"
+  },
+  "devDependencies": {
+    "@types/glob": "^8.1.0",
+    "@types/mocha": "^10.0.1",
+    "@types/node": "16.x",
+    "@types/vscode": "^1.74.0",
+    "@types/ws": "^8.18.1",
+    "@typescript-eslint/eslint-plugin": "^5.59.0",
+    "@typescript-eslint/parser": "^5.59.0",
+    "@vscode/test-electron": "^2.3.0",
+    "eslint": "^8.39.0",
+    "glob": "^8.1.0",
+    "mocha": "^10.2.0",
+    "nyc": "^15.1.0",
+    "typescript": "^4.9.4"
+  },
+  "dependencies": {
+    "@babel/parser": "^7.28.4",
+    "chokidar": "^3.5.3",
+    "recast": "^0.23.11",
+    "ws": "^8.14.2"
+  }
+}

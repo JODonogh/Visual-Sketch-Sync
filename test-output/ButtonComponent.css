@@ -1,0 +1,23 @@
+.component-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: nullpx;
+  min-height: nullpx;
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.component-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.component-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}

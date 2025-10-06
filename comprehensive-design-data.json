@@ -1,0 +1,131 @@
+{
+  "canvas": {
+    "width": 1920,
+    "height": 1080,
+    "backgroundColor": "#ffffff",
+    "grid": {
+      "size": 8,
+      "visible": true
+    }
+  },
+  "layers": [
+    {
+      "id": "layer_001",
+      "name": "UI Components",
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "elements": [
+    {
+      "id": "button_primary",
+      "type": "rectangle",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "size": {
+        "width": 120,
+        "height": 40
+      },
+      "style": {
+        "fill": "#28a745",
+        "borderRadius": 8,
+        "stroke": "#0056b3",
+        "strokeWidth": 1
+      },
+      "layerId": "layer_001"
+    },
+    {
+      "id": "text_label",
+      "type": "text",
+      "position": {
+        "x": 110,
+        "y": 115
+      },
+      "size": {
+        "width": 100,
+        "height": 20
+      },
+      "style": {
+        "textColor": "#ffffff",
+        "fontSize": 16,
+        "fontWeight": "500",
+        "textAlign": "center"
+      },
+      "content": "Click Me",
+      "layerId": "layer_001"
+    },
+    {
+      "id": "card_001",
+      "type": "rectangle",
+      "position": {
+        "x": 250,
+        "y": 100
+      },
+      "size": {
+        "width": 200,
+        "height": 150
+      },
+      "style": {
+        "fill": "#ffffff",
+        "borderRadius": 12,
+        "stroke": "#e0e0e0",
+        "strokeWidth": 1,
+        "boxShadow": {
+          "offsetX": 0,
+          "offsetY": 2,
+          "blurRadius": 8,
+          "color": "rgba(0, 0, 0, 0.1)"
+        }
+      },
+      "layerId": "layer_001"
+    }
+  ],
+  "colorPalette": [
+    {
+      "name": "Primary",
+      "color": "#007bff",
+      "usage": "buttons"
+    },
+    {
+      "name": "Success",
+      "color": "#28a745",
+      "usage": "success states"
+    },
+    {
+      "name": "Danger",
+      "color": "#dc3545",
+      "usage": "error states"
+    }
+  ],
+  "designTokens": {
+    "spacing": {
+      "xs": 4,
+      "sm": 8,
+      "md": 16,
+      "lg": 24,
+      "xl": 32
+    },
+    "colors": {
+      "primary": "#007bff",
+      "success": "#28a745",
+      "danger": "#dc3545",
+      "text": "#333333",
+      "background": "#ffffff"
+    },
+    "typography": {
+      "fontSizes": {
+        "sm": 12,
+        "md": 14,
+        "lg": 16,
+        "xl": 18
+      },
+      "fontWeights": {
+        "normal": 400,
+        "medium": 500,
+        "bold": 700
+      }
+    }
+  }
+}

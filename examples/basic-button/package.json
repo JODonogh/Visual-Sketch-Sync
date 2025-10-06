@@ -1,0 +1,36 @@
+{
+  "name": "vds-basic-button-example",
+  "version": "1.0.0",
+  "description": "Basic button component example for Visual Design Sync",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "vite",
+    "dev:sync": "node scripts/vds-sync-server.js",
+    "start": "concurrently \"npm run dev\" \"npm run dev:sync\"",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.0.0",
+    "vite": "^4.3.0",
+    "concurrently": "^8.2.0",
+    "ws": "^8.13.0",
+    "chokidar": "^3.5.3",
+    "recast": "^0.23.0",
+    "@babel/parser": "^7.22.0"
+  },
+  "keywords": [
+    "visual-design-sync",
+    "vds",
+    "react",
+    "design-to-code",
+    "canvas",
+    "drawing"
+  ],
+  "author": "VDS Team",
+  "license": "MIT"
+}
