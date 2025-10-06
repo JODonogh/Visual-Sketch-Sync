@@ -4,6 +4,10 @@
   "description": "Visual Sketch Sync - Three-way synchronization between drawing canvas, VS Code, and live Chrome application",
   "version": "0.1.0",
   "publisher": "kiro",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JODonogh/Visual-Sketch-Sync.git"
+  },
   "engines": {
     "vscode": "^1.74.0"
   },
@@ -190,11 +194,15 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
+    "package": "vsce package",
+    "package:install": "vsce package && code --install-extension visual-sketch-sync-0.1.0.vsix",
     "diagnostics": "node scripts/vss-diagnostics.js",
     "test:diagnostics": "node scripts/vss-diagnostics.js --format json",
     "recovery": "node scripts/vss-recovery-tool.js",
     "recovery:auto": "node scripts/vss-recovery-tool.js --auto-fix",
     "health-check": "node scripts/vss-diagnostics.js && echo 'Run npm run recovery if issues found'",
+    "validate-install": "node scripts/installation-validator.js",
+    "test-manual-install": "node scripts/test-manual-install.js",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",

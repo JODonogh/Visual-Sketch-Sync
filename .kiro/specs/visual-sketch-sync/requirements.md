@@ -6,28 +6,30 @@ This feature creates a visual sketch-to-code synchronization system that allows 
 
 ## Requirements
 
-### Requirement 1: Project Setup and Dependencies Management
+### Requirement 1: VS Code Extension Command Registration and Activation
 
-**User Story:** As a developer, I want Kiro to automatically configure my project with the necessary dependencies and scripts, so that I can start using the visual design sync without manual setup.
-
-#### Acceptance Criteria
-
-1. WHEN initializing the project THEN Kiro SHALL modify package.json to add a "dev:sync" script that runs "node ./scripts/vss-sync-server.js"
-2. WHEN setting up the project THEN Kiro SHALL modify the start script to "concurrently \"npm run dev:ui\" \"npm run dev:sync\"" to run both UI and sync servers
-3. WHEN configuring dependencies THEN Kiro SHALL install concurrently, ws, chokidar, recast, and @babel/parser packages
-4. WHEN creating the project structure THEN Kiro SHALL generate a scripts/ directory containing vss-sync-server.js
-
-### Requirement 2: Code-Design Runtime Integration
-
-**User Story:** As a developer, I want a React runtime system that connects my components to the visual design system, so that I can build components that are automatically synchronized with the visual canvas.
+**User Story:** As a developer, I want the VS Code extension commands to be properly registered and functional, so that I can access the drawing canvas and other VSS features through the command palette.
 
 #### Acceptance Criteria
 
-1. WHEN creating the runtime THEN Kiro SHALL generate a VSSProvider component that establishes WebSocket connection to the sync server
-2. WHEN managing design data THEN the VSSProvider SHALL fetch and manage Design Data from DesignData.json file
-3. WHEN accessing component data THEN Kiro SHALL provide a useVSSData() hook that allows components to fetch props based on their vss-id
-4. WHEN registering components THEN Kiro SHALL generate a registerComponent utility that accepts a component and schema defining visually editable props
-5. WHEN initializing design data THEN Kiro SHALL create an initial DesignData.json file with basic page structure
+1. WHEN the extension activates THEN it SHALL register all commands declared in package.json including vss.openDrawingCanvas
+2. WHEN a user runs "VSS: Open Drawing Canvas" THEN the command SHALL execute without errors and open the drawing canvas webview
+3. WHEN the extension loads THEN it SHALL properly initialize the webview provider and command handlers
+4. WHEN commands are executed THEN they SHALL provide appropriate user feedback and error handling
+5. WHEN installing the extension THEN it SHALL provide clear installation instructions that avoid cyclic copy errors
+6. WHEN the extension is packaged THEN it SHALL create a proper .vsix file for installation
+
+### Requirement 2: Extension Installation and Development Setup
+
+**User Story:** As a developer, I want clear and working installation methods for the VS Code extension, so that I can properly install and test the extension without errors.
+
+#### Acceptance Criteria
+
+1. WHEN using F5 development mode THEN the extension SHALL load properly in the Extension Development Host window
+2. WHEN packaging the extension THEN it SHALL create a valid .vsix file using vsce package command
+3. WHEN installing from .vsix THEN the extension SHALL install correctly without cyclic copy errors
+4. WHEN the extension is installed THEN all declared commands SHALL be available in the command palette
+5. WHEN running the extension THEN it SHALL handle SQLite experimental warnings gracefully without affecting functionality
 
 ### Requirement 3: Design-to-Code Synchronization Server
 

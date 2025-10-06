@@ -1,10 +1,60 @@
+# VS Code specific files
 .vscode/**
 .vscode-test/**
+
+# Source files (only include compiled output)
 src/**
-.gitignore
-.yarnrc
-vsc-extension-quickstart.md
-**/tsconfig.json
-**/.eslintrc.json
-**/*.map
 **/*.ts
+**/*.map
+
+# Build and development files
+node_modules/**
+out/test/**
+coverage/**
+.nyc_output/**
+
+# Git and version control
+.git/**
+.gitignore
+.gitattributes
+
+# Development configuration
+tsconfig.json
+.eslintrc.json
+.eslintrc.js
+.eslintignore
+
+# Documentation and guides
+vsc-extension-quickstart.md
+CHANGELOG.md
+README.md
+
+# Package management
+.yarnrc
+.npmrc
+package-lock.json
+yarn.lock
+
+# Temporary and cache files
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+.cache/**
+
+# Kiro specs (development only)
+.kiro/**
+
+# VSS specific exclusions
+.vss-backups/**
+.vss-recovery-backups/**
+test-output/**
+tutorials/**
+examples/**
+docs/**
+
+# Generated components (development artifacts)
+generated-components/**
+
+# Marketplace files (separate packaging)
+marketplace/**

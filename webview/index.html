@@ -5,11 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
     <title>VSS Drawing Canvas</title>
-    <script src="error-handler.js"></script>
-    <script src="drawing-tools.js"></script>
-    <script src="color-system.js"></script>
-    <script src="canvas-state.js"></script>
-    <script src="alignment-guides.js"></script>
     <style>
         body {
             margin: 0;
@@ -17,21 +12,34 @@
             background: #1e1e1e;
             color: #cccccc;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
         }
         
         #canvas-container {
             width: 100%;
             height: 100vh;
             position: relative;
-            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #status {
+            background: rgba(30, 30, 30, 0.9);
+            color: #cccccc;
+            padding: 8px 12px;
+            font-size: 12px;
+            border-bottom: 1px solid #555;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
         #drawing-canvas {
-            border: none;
+            flex: 1;
             background: white;
             cursor: crosshair;
-            touch-action: none; /* Important for tablet/stylus input */
-            user-select: none; /* Prevent text selection during drawing */
+            touch-action: none;
+            user-select: none;
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
@@ -39,7 +47,7 @@
         
         .toolbar {
             position: absolute;
-            top: 10px;
+            top: 50px;
             left: 10px;
             background: rgba(30, 30, 30, 0.9);
             border-radius: 8px;
@@ -67,2810 +75,300 @@
             background: #007acc;
         }
         
-        .toolbar-separator {
-            width: 1px;
-            background: #555;
-            margin: 0 5px;
-        }
-        
-        .pressure-indicator {
-            display: flex;
-            align-items: center;
+        .connection-status {
             font-size: 11px;
             color: #999;
         }
         
-        .pressure-label {
-            padding: 4px 8px;
-            background: #2d2d2d;
-            border-radius: 3px;
-        }
-        
-        .pressure-indicator.active .pressure-label {
-            background: #0e7a0d;
-            color: #fff;
-        }
-        
-        /* Enhanced Toolbar Styles */
-        .toolbar-section {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 0 8px;
-            border-right: 1px solid #555;
-        }
-        
-        .toolbar-section:last-child {
-            border-right: none;
-        }
-        
-        .size-control, .opacity-control {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 11px;
-        }
-        
-        .size-slider, .opacity-slider {
-            width: 60px;
-            height: 4px;
-            background: #555;
-            border-radius: 2px;
-            outline: none;
-            -webkit-appearance: none;
-        }
-        
-        .size-slider::-webkit-slider-thumb, .opacity-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 12px;
-            height: 12px;
-            background: #007acc;
-            border-radius: 50%;
-            cursor: pointer;
-        }
-        
-        .color-picker-container {
-            position: relative;
-        }
-        
-        .current-color {
-            width: 24px;
-            height: 24px;
-            border: 2px solid #555;
-            border-radius: 4px;
-            cursor: pointer;
-            background: #000000;
-        }
-        
-        .color-picker-panel {
-            position: absolute;
-            top: 30px;
-            left: 0;
-            background: #2d2d2d;
-            border: 1px solid #555;
-            border-radius: 8px;
-            padding: 12px;
-            display: none;
-            z-index: 1000;
-            min-width: 280px;
-        }
-        
-        .color-picker-panel.active {
-            display: block;
-        }
-        
-        .color-picker-section {
-            margin-bottom: 12px;
-        }
-        
-        .color-picker-section:last-child {
-            margin-bottom: 0;
-        }
-        
-        .color-picker-label {
-            font-size: 11px;
-            color: #ccc;
-            margin-bottom: 6px;
-            display: block;
-        }
-        
-        .hsb-controls {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-        
-        .hsb-control {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .hsb-slider {
-            flex: 1;
-            height: 6px;
-            border-radius: 3px;
-            outline: none;
-            -webkit-appearance: none;
-        }
-        
-        .hsb-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 14px;
-            height: 14px;
-            background: #fff;
-            border: 2px solid #333;
-            border-radius: 50%;
-            cursor: pointer;
-        }
-        
-        .hue-slider {
-            background: linear-gradient(to right, 
-                #ff0000 0%, #ffff00 16.66%, #00ff00 33.33%, 
-                #00ffff 50%, #0000ff 66.66%, #ff00ff 83.33%, #ff0000 100%);
-        }
-        
-        .saturation-slider {
-            background: linear-gradient(to right, #808080, #ff0000);
-        }
-        
-        .brightness-slider {
-            background: linear-gradient(to right, #000000, #ffffff);
-        }
-        
-        .hsb-value {
-            width: 40px;
-            background: #1e1e1e;
-            border: 1px solid #555;
-            color: #ccc;
-            padding: 2px 4px;
-            font-size: 11px;
-            text-align: center;
-        }
-        
-        .color-harmony {
-            display: flex;
-            gap: 4px;
-            margin-top: 8px;
-        }
-        
-        .harmony-color {
-            width: 20px;
-            height: 20px;
-            border: 1px solid #555;
-            border-radius: 3px;
-            cursor: pointer;
-        }
-        
-        .harmony-selector {
-            background: #1e1e1e;
-            border: 1px solid #555;
-            color: #ccc;
-            padding: 4px;
-            font-size: 11px;
-            border-radius: 3px;
-        }
-        
-        .swatches-grid {
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            gap: 4px;
-            margin-top: 8px;
-        }
-        
-        .swatch-color {
-            width: 24px;
-            height: 24px;
-            border: 1px solid #555;
-            border-radius: 3px;
-            cursor: pointer;
-            position: relative;
-        }
-        
-        .swatch-color:hover::after {
-            content: attr(data-name);
-            position: absolute;
-            bottom: -20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #000;
-            color: #fff;
-            padding: 2px 4px;
-            font-size: 10px;
-            border-radius: 2px;
-            white-space: nowrap;
-            z-index: 1001;
-        }
-        
-        .accessibility-info {
-            font-size: 10px;
-            color: #999;
-            margin-top: 6px;
-        }
-        
-        .accessibility-good {
+        .connection-status.connected {
             color: #28a745;
         }
         
-        .accessibility-warning {
-            color: #ffc107;
-        }
-        
-        .accessibility-error {
+        .connection-status.disconnected {
             color: #dc3545;
-        }
-        
-        /* Layers Panel Styles */
-        .layers-panel {
-            position: absolute;
-            top: 60px;
-            right: 10px;
-            width: 200px;
-            background: rgba(30, 30, 30, 0.95);
-            border: 1px solid #555;
-            border-radius: 8px;
-            padding: 8px;
-            z-index: 100;
-            font-size: 12px;
-        }
-        
-        .layers-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-            padding-bottom: 4px;
-            border-bottom: 1px solid #555;
-        }
-        
-        .layers-header h3 {
-            margin: 0;
-            font-size: 12px;
-            color: #ccc;
-        }
-        
-        .layer-btn {
-            background: #3c3c3c;
-            border: none;
-            color: #ccc;
-            padding: 4px 8px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 11px;
-        }
-        
-        .layer-btn:hover {
-            background: #4c4c4c;
-        }
-        
-        .layers-list {
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        
-        .layer-item {
-            display: flex;
-            align-items: center;
-            padding: 4px;
-            margin: 2px 0;
-            background: #2d2d2d;
-            border-radius: 3px;
-            cursor: pointer;
-        }
-        
-        .layer-item:hover {
-            background: #3d3d3d;
-        }
-        
-        .layer-item.active {
-            background: #007acc;
-        }
-        
-        .layer-visibility {
-            width: 16px;
-            height: 16px;
-            margin-right: 6px;
-            cursor: pointer;
-            text-align: center;
-            line-height: 16px;
-            font-size: 10px;
-        }
-        
-        .layer-name {
-            flex: 1;
-            color: #ccc;
-            font-size: 11px;
-        }
-        
-        .layer-locked {
-            width: 16px;
-            height: 16px;
-            text-align: center;
-            line-height: 16px;
-            font-size: 10px;
-            color: #999;
-        }
-        
-        .layers-footer {
-            display: flex;
-            gap: 4px;
-            margin-top: 8px;
-            padding-top: 4px;
-            border-top: 1px solid #555;
-        }
-        
-        /* History Controls */
-        .tool-button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
-        .tool-button.active-guide {
-            background: #28a745;
-        }
-        
-        /* CRAP Analysis Panel */
-        .crap-panel {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            width: 220px;
-            background: rgba(30, 30, 30, 0.95);
-            border: 1px solid #555;
-            border-radius: 8px;
-            padding: 8px;
-            z-index: 100;
-            font-size: 11px;
-            display: none;
-        }
-        
-        .crap-panel.visible {
-            display: block;
-        }
-        
-        .crap-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-            padding-bottom: 4px;
-            border-bottom: 1px solid #555;
-        }
-        
-        .crap-header h3 {
-            margin: 0;
-            font-size: 12px;
-            color: #ccc;
-        }
-        
-        .crap-principle {
-            margin-bottom: 8px;
-        }
-        
-        .crap-principle-name {
-            font-weight: bold;
-            color: #ccc;
-            margin-bottom: 2px;
-        }
-        
-        .crap-score {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 4px;
-        }
-        
-        .crap-score-bar {
-            flex: 1;
-            height: 4px;
-            background: #333;
-            border-radius: 2px;
-            overflow: hidden;
-        }
-        
-        .crap-score-fill {
-            height: 100%;
-            background: linear-gradient(to right, #dc3545, #ffc107, #28a745);
-            transition: width 0.3s ease;
-        }
-        
-        .crap-score-value {
-            font-size: 10px;
-            color: #999;
-        }
-        
-        .crap-suggestions {
-            font-size: 10px;
-            color: #999;
-            line-height: 1.3;
-        }
-        
-        /* Typography Tools Styles */
-        .font-size-selector {
-            background: #3c3c3c;
-            border: 1px solid #555;
-            color: #ccc;
-            padding: 4px 8px;
-            border-radius: 3px;
-            font-size: 11px;
-            cursor: pointer;
-        }
-        
-        .font-size-selector:hover {
-            background: #4c4c4c;
-        }
-        
-        /* Layout Suggestions Panel */
-        .suggestions-panel {
-            position: absolute;
-            top: 60px;
-            left: 10px;
-            width: 280px;
-            max-height: 400px;
-            background: rgba(30, 30, 30, 0.95);
-            border: 1px solid #555;
-            border-radius: 8px;
-            padding: 8px;
-            z-index: 100;
-            font-size: 11px;
-            display: none;
-            overflow-y: auto;
-        }
-        
-        .suggestions-panel.visible {
-            display: block;
-        }
-        
-        .suggestions-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-            padding-bottom: 4px;
-            border-bottom: 1px solid #555;
-        }
-        
-        .suggestions-header h3 {
-            margin: 0;
-            font-size: 12px;
-            color: #ccc;
-        }
-        
-        .suggestion-item {
-            background: #2d2d2d;
-            border-radius: 4px;
-            padding: 8px;
-            margin-bottom: 6px;
-            border-left: 3px solid #007acc;
-        }
-        
-        .suggestion-item.warning {
-            border-left-color: #ffc107;
-        }
-        
-        .suggestion-item.error {
-            border-left-color: #dc3545;
-        }
-        
-        .suggestion-item.info {
-            border-left-color: #17a2b8;
-        }
-        
-        .suggestion-title {
-            font-weight: bold;
-            color: #ccc;
-            margin-bottom: 4px;
-            font-size: 11px;
-        }
-        
-        .suggestion-message {
-            color: #999;
-            font-size: 10px;
-            line-height: 1.3;
-            margin-bottom: 6px;
-        }
-        
-        .suggestion-actions {
-            display: flex;
-            gap: 4px;
-        }
-        
-        .suggestion-btn {
-            background: #007acc;
-            border: none;
-            color: #fff;
-            padding: 4px 8px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 10px;
-        }
-        
-        .suggestion-btn:hover {
-            background: #005a9e;
-        }
-        
-        .suggestion-btn.secondary {
-            background: #6c757d;
-        }
-        
-        .suggestion-btn.secondary:hover {
-            background: #545b62;
-        }
-        
-        /* Grid Configuration Panel */
-        .grid-config-panel {
-            position: absolute;
-            top: 100px;
-            right: 10px;
-            width: 200px;
-            background: rgba(30, 30, 30, 0.95);
-            border: 1px solid #555;
-            border-radius: 8px;
-            padding: 8px;
-            z-index: 100;
-            font-size: 11px;
-            display: none;
-        }
-        
-        .grid-config-panel.visible {
-            display: block;
-        }
-        
-        .grid-config-section {
-            margin-bottom: 8px;
-        }
-        
-        .grid-config-label {
-            display: block;
-            color: #ccc;
-            margin-bottom: 4px;
-            font-size: 10px;
-        }
-        
-        .grid-config-slider {
-            width: 100%;
-            height: 4px;
-            background: #555;
-            border-radius: 2px;
-            outline: none;
-            -webkit-appearance: none;
-        }
-        
-        .grid-config-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 12px;
-            height: 12px;
-            background: #007acc;
-            border-radius: 50%;
-            cursor: pointer;
-        }
-        
-        .grid-config-value {
-            display: inline-block;
-            background: #1e1e1e;
-            border: 1px solid #555;
-            color: #ccc;
-            padding: 2px 4px;
-            font-size: 10px;
-            text-align: center;
-            width: 40px;
-            margin-left: 8px;
-        }
-        
-        /* Typography Panel */
-        .typography-panel {
-            position: absolute;
-            bottom: 60px;
-            left: 10px;
-            width: 250px;
-            background: rgba(30, 30, 30, 0.95);
-            border: 1px solid #555;
-            border-radius: 8px;
-            padding: 8px;
-            z-index: 100;
-            font-size: 11px;
-            display: none;
-        }
-        
-        .typography-panel.visible {
-            display: block;
-        }
-        
-        .typography-controls {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-        
-        .typography-control {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .baseline-spacing-control {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        
-        .baseline-spacing-slider {
-            flex: 1;
-            height: 4px;
-            background: #555;
-            border-radius: 2px;
-            outline: none;
-            -webkit-appearance: none;
-        }
-        
-        .baseline-spacing-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 12px;
-            height: 12px;
-            background: #ff6b6b;
-            border-radius: 50%;
-            cursor: pointer;
         }
     </style>
 </head>
 <body>
     <div id="canvas-container">
+        <div id="status">
+            <span>VSS Drawing Canvas - Ready</span>
+            <span class="connection-status disconnected" id="connection-status">Disconnected</span>
+        </div>
+        
         <div class="toolbar">
-            <!-- Drawing Tools Section -->
-            <div class="toolbar-section">
-                <button class="tool-button active" data-tool="brush">Brush</button>
-                <button class="tool-button" data-tool="pen">Pen</button>
-                <button class="tool-button" data-tool="rectangle">Rectangle</button>
-                <button class="tool-button" data-tool="circle">Circle</button>
-                <button class="tool-button" data-tool="line">Line</button>
-            </div>
-            
-            <!-- Size Control Section -->
-            <div class="toolbar-section">
-                <div class="size-control">
-                    <span>Size:</span>
-                    <input type="range" class="size-slider" id="size-slider" min="1" max="50" value="5">
-                    <span id="size-value">5</span>
-                </div>
-            </div>
-            
-            <!-- Opacity Control Section -->
-            <div class="toolbar-section">
-                <div class="opacity-control">
-                    <span>Opacity:</span>
-                    <input type="range" class="opacity-slider" id="opacity-slider" min="0" max="100" value="100">
-                    <span id="opacity-value">100%</span>
-                </div>
-            </div>
-            
-            <!-- Color Picker Section -->
-            <div class="toolbar-section">
-                <div class="color-picker-container">
-                    <div class="current-color" id="current-color"></div>
-                    <div class="color-picker-panel" id="color-picker-panel">
-                        <!-- HSB Controls -->
-                        <div class="color-picker-section">
-                            <label class="color-picker-label">Color (HSB)</label>
-                            <div class="hsb-controls">
-                                <div class="hsb-control">
-                                    <span>H:</span>
-                                    <input type="range" class="hsb-slider hue-slider" id="hue-slider" min="0" max="360" value="0">
-                                    <input type="number" class="hsb-value" id="hue-value" min="0" max="360" value="0">
-                                </div>
-                                <div class="hsb-control">
-                                    <span>S:</span>
-                                    <input type="range" class="hsb-slider saturation-slider" id="saturation-slider" min="0" max="100" value="100">
-                                    <input type="number" class="hsb-value" id="saturation-value" min="0" max="100" value="100">
-                                </div>
-                                <div class="hsb-control">
-                                    <span>B:</span>
-                                    <input type="range" class="hsb-slider brightness-slider" id="brightness-slider" min="0" max="100" value="100">
-                                    <input type="number" class="hsb-value" id="brightness-value" min="0" max="100" value="100">
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Color Harmony -->
-                        <div class="color-picker-section">
-                            <label class="color-picker-label">Color Harmony</label>
-                            <select class="harmony-selector" id="harmony-selector">
-                                <option value="monochromatic">Monochromatic</option>
-                                <option value="analogous">Analogous</option>
-                                <option value="complementary">Complementary</option>
-                                <option value="triadic">Triadic</option>
-                                <option value="tetradic">Tetradic</option>
-                            </select>
-                            <div class="color-harmony" id="color-harmony"></div>
-                        </div>
-                        
-                        <!-- Swatches -->
-                        <div class="color-picker-section">
-                            <label class="color-picker-label">Color Swatches</label>
-                            <div class="swatches-grid" id="swatches-grid"></div>
-                        </div>
-                        
-                        <!-- Accessibility Info -->
-                        <div class="color-picker-section">
-                            <div class="accessibility-info" id="accessibility-info">
-                                Contrast ratio: <span id="contrast-ratio">-</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- History Controls Section -->
-            <div class="toolbar-section">
-                <button class="tool-button" id="undo-btn" title="Undo (Ctrl+Z)">↶</button>
-                <button class="tool-button" id="redo-btn" title="Redo (Ctrl+Y)">↷</button>
-            </div>
-            
-            <!-- Grid and Guides Section -->
-            <div class="toolbar-section">
-                <button class="tool-button" id="grid-btn" title="Toggle Grid">Grid</button>
-                <button class="tool-button" id="guides-btn" title="Toggle Alignment Guides">Guides</button>
-                <button class="tool-button" id="snap-btn" title="Toggle Snap">Snap</button>
-                <button class="tool-button" id="baseline-btn" title="Toggle Baseline Grid">Baseline</button>
-            </div>
-            
-            <!-- Typography Tools Section -->
-            <div class="toolbar-section">
-                <button class="tool-button" id="text-tool-btn" title="Text Tool">T</button>
-                <select class="font-size-selector" id="font-size-selector" title="Font Size">
-                    <option value="12">12px</option>
-                    <option value="14">14px</option>
-                    <option value="16" selected>16px</option>
-                    <option value="18">18px</option>
-                    <option value="24">24px</option>
-                    <option value="32">32px</option>
-                    <option value="48">48px</option>
-                    <option value="64">64px</option>
-                </select>
-            </div>
-            
-            <!-- Layout Suggestions Section -->
-            <div class="toolbar-section">
-                <button class="tool-button" id="analyze-btn" title="Analyze Design">📊</button>
-                <button class="tool-button" id="suggestions-btn" title="Layout Suggestions">💡</button>
-            </div>
-            
-            <!-- Pressure Indicator Section -->
-            <div class="toolbar-section">
-                <div class="pressure-indicator" id="pressure-indicator">
-                    <span class="pressure-label">Pressure: Off</span>
-                </div>
-            </div>
+            <button class="tool-button active" data-tool="pen" id="pen-tool">Pen</button>
+            <button class="tool-button" data-tool="eraser" id="eraser-tool">Eraser</button>
+            <button class="tool-button" id="clear-canvas">Clear</button>
         </div>
+        
         <canvas id="drawing-canvas"></canvas>
-        
-        <!-- Layers Panel -->
-        <div class="layers-panel" id="layers-panel">
-            <div class="layers-header">
-                <h3>Layers</h3>
-                <button class="layer-btn" id="add-layer-btn" title="Add Layer">+</button>
-            </div>
-            <div class="layers-list" id="layers-list">
-                <!-- Layers will be populated here -->
-            </div>
-            <div class="layers-footer">
-                <button class="layer-btn" id="delete-layer-btn" title="Delete Layer">🗑</button>
-                <button class="layer-btn" id="duplicate-layer-btn" title="Duplicate Layer">📋</button>
-                <button class="layer-btn" id="crap-analysis-btn" title="CRAP Analysis">📊</button>
-            </div>
-        </div>
-        
-        <!-- CRAP Analysis Panel -->
-        <div class="crap-panel" id="crap-panel">
-            <div class="crap-header">
-                <h3>Design Analysis</h3>
-                <button class="layer-btn" id="close-crap-btn">×</button>
-            </div>
-            <div id="crap-content">
-                <!-- CRAP analysis will be populated here -->
-            </div>
-        </div>
-        
-        <!-- Layout Suggestions Panel -->
-        <div class="suggestions-panel" id="suggestions-panel">
-            <div class="suggestions-header">
-                <h3>Layout Suggestions</h3>
-                <button class="layer-btn" id="close-suggestions-btn">×</button>
-            </div>
-            <div id="suggestions-content">
-                <!-- Layout suggestions will be populated here -->
-            </div>
-        </div>
-        
-        <!-- Grid Configuration Panel -->
-        <div class="grid-config-panel" id="grid-config-panel">
-            <div class="suggestions-header">
-                <h3>Grid Settings</h3>
-                <button class="layer-btn" id="close-grid-config-btn">×</button>
-            </div>
-            <div class="grid-config-section">
-                <label class="grid-config-label">Grid Size</label>
-                <input type="range" class="grid-config-slider" id="grid-size-slider" min="4" max="32" value="8">
-                <input type="number" class="grid-config-value" id="grid-size-value" min="4" max="32" value="8">
-            </div>
-            <div class="grid-config-section">
-                <label class="grid-config-label">Subdivisions</label>
-                <input type="range" class="grid-config-slider" id="grid-subdivisions-slider" min="1" max="8" value="4">
-                <input type="number" class="grid-config-value" id="grid-subdivisions-value" min="1" max="8" value="4">
-            </div>
-            <div class="grid-config-section">
-                <label class="grid-config-label">Opacity</label>
-                <input type="range" class="grid-config-slider" id="grid-opacity-slider" min="0" max="100" value="30">
-                <span class="grid-config-value" id="grid-opacity-value">30%</span>
-            </div>
-        </div>
-        
-        <!-- Typography Panel -->
-        <div class="typography-panel" id="typography-panel">
-            <div class="suggestions-header">
-                <h3>Typography Tools</h3>
-                <button class="layer-btn" id="close-typography-btn">×</button>
-            </div>
-            <div class="typography-controls">
-                <div class="typography-control">
-                    <label>
-                        <input type="checkbox" id="baseline-grid-checkbox"> Baseline Grid
-                    </label>
-                </div>
-                <div class="baseline-spacing-control">
-                    <span>Spacing:</span>
-                    <input type="range" class="baseline-spacing-slider" id="baseline-spacing-slider" min="12" max="48" value="24">
-                    <span id="baseline-spacing-value">24px</span>
-                </div>
-                <div class="typography-control">
-                    <button class="suggestion-btn" id="align-text-baseline-btn">Align to Baseline</button>
-                    <button class="suggestion-btn secondary" id="analyze-typography-btn">Analyze Text</button>
-                </div>
-            </div>
-        </div>
     </div>
-    
+
     <script>
-        // Drawing Engine with Pointer Events API and Pressure Sensitivity
-        class DrawingEngine {
-            constructor(canvas) {
-                this.canvas = canvas;
-                this.ctx = canvas.getContext('2d');
-                this.isDrawing = false;
-                this.currentTool = 'brush';
-                this.currentPath = [];
-                this.pressureSupported = false;
+        // Canvas and drawing state
+        let canvas, ctx;
+        let isDrawing = false;
+        let currentTool = 'pen';
+        let lastX = 0;
+        let lastY = 0;
+        
+        // VS Code API for message passing
+        const vscode = acquireVsCodeApi();
+        
+        // Initialize canvas when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCanvas();
+            setupEventListeners();
+            setupMessagePassing();
+            updateStatus('Canvas initialized successfully');
+        });
+        
+        function initializeCanvas() {
+            try {
+                canvas = document.getElementById('drawing-canvas');
+                ctx = canvas.getContext('2d');
                 
-                // Drawing state
-                this.brushSize = 5;
-                this.brushColor = '#000000';
-                this.brushOpacity = 1.0;
+                // Set canvas size to fill container
+                resizeCanvas();
                 
-                this.setupCanvas();
-                this.setupPointerEvents();
-                this.detectPressureSupport();
+                // Set default drawing properties
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 2;
+                
+                updateStatus('Canvas ready for drawing');
+            } catch (error) {
+                updateStatus('Error initializing canvas: ' + error.message);
+                console.error('Canvas initialization error:', error);
             }
+        }
+        
+        function resizeCanvas() {
+            const container = document.getElementById('canvas-container');
+            const statusHeight = document.getElementById('status').offsetHeight;
             
-            setupCanvas() {
-                // Resize canvas to fill container
-                const container = document.getElementById('canvas-container');
-                this.canvas.width = container.clientWidth;
-                this.canvas.height = container.clientHeight;
-                
-                // Set up canvas context for smooth drawing
-                this.ctx.lineCap = 'round';
-                this.ctx.lineJoin = 'round';
-                this.ctx.imageSmoothingEnabled = true;
-                
-                // Handle window resize
-                window.addEventListener('resize', () => {
-                    this.canvas.width = container.clientWidth;
-                    this.canvas.height = container.clientHeight;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight - statusHeight;
+        }
+        
+        function setupEventListeners() {
+            // Window resize
+            window.addEventListener('resize', resizeCanvas);
+            
+            // Tool buttons
+            document.querySelectorAll('.tool-button[data-tool]').forEach(button => {
+                button.addEventListener('click', function() {
+                    selectTool(this.dataset.tool);
                 });
-            }
+            });
             
-            setupPointerEvents() {
-                // Enhanced Pointer Events API for cross-platform input support
-                // Optimized for mouse, touch, stylus (Wacom, Apple Pencil), iPad, Codespaces
-                
-                // Multi-touch gesture state
-                this.gestureState = {
-                    pointers: new Map(),
-                    isPinching: false,
-                    isRotating: false,
-                    isPanning: false,
-                    lastPinchDistance: 0,
-                    lastRotationAngle: 0,
-                    panStartPosition: null
-                };
-                
-                // Primary pointer events
-                this.canvas.addEventListener('pointerdown', (e) => this.handlePointerDown(e));
-                this.canvas.addEventListener('pointermove', (e) => this.handlePointerMove(e));
-                this.canvas.addEventListener('pointerup', (e) => this.handlePointerUp(e));
-                this.canvas.addEventListener('pointercancel', (e) => this.handlePointerUp(e));
-                
-                // Enhanced touch handling for iPad and tablets
-                this.canvas.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    this.handleTouchGestures(e);
-                });
-                this.canvas.addEventListener('touchmove', (e) => {
-                    e.preventDefault();
-                    this.handleTouchGestures(e);
-                });
-                this.canvas.addEventListener('touchend', (e) => {
-                    e.preventDefault();
-                    this.handleTouchGestures(e);
-                });
-                
-                // Capture pointer for consistent tracking
-                this.canvas.addEventListener('pointerdown', (e) => {
-                    this.canvas.setPointerCapture(e.pointerId);
-                    this.gestureState.pointers.set(e.pointerId, {
-                        x: e.clientX,
-                        y: e.clientY,
-                        pressure: e.pressure,
-                        pointerType: e.pointerType,
-                        timestamp: Date.now()
-                    });
-                });
-                
-                this.canvas.addEventListener('pointerup', (e) => {
-                    this.gestureState.pointers.delete(e.pointerId);
-                    if (this.gestureState.pointers.size === 0) {
-                        this.resetGestureState();
-                    }
-                });
-                
-                // Keyboard shortcuts for accessibility
-                document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
-                
-                // Context menu for right-click/long-press
-                this.canvas.addEventListener('contextmenu', (e) => {
-                    e.preventDefault();
-                    this.showContextMenu(e.clientX, e.clientY);
-                });
-                
-                // Detect device capabilities
-                this.detectDeviceCapabilities();
-            }
+            // Clear canvas button
+            document.getElementById('clear-canvas').addEventListener('click', clearCanvas);
             
-            detectDeviceCapabilities() {
-                // Detect iPad/tablet environment
-                this.deviceInfo = {
-                    isIPad: /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1),
-                    isAndroidTablet: /Android/.test(navigator.userAgent) && window.innerWidth > 768,
-                    isCodespaces: window.location.hostname.includes('github.dev') || 
-                                 window.location.hostname.includes('codespaces'),
-                    isMobile: window.innerWidth <= 768,
-                    hasTouch: 'ontouchstart' in window,
-                    maxTouchPoints: navigator.maxTouchPoints || 0,
-                    isVSCodeWeb: navigator.userAgent.includes('VSCode')
-                };
-                
-                // Adjust UI for device type
-                this.adaptUIForDevice();
-                
-                console.log('Device capabilities detected:', this.deviceInfo);
-            }
+            // Mouse events for drawing
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
             
-            adaptUIForDevice() {
-                const toolbar = document.querySelector('.toolbar');
-                const layersPanel = document.querySelector('.layers-panel');
+            // Touch events for mobile/tablet support
+            canvas.addEventListener('touchstart', handleTouch);
+            canvas.addEventListener('touchmove', handleTouch);
+            canvas.addEventListener('touchend', stopDrawing);
+        }
+        
+        function setupMessagePassing() {
+            // Listen for messages from VS Code extension
+            window.addEventListener('message', event => {
+                const message = event.data;
                 
-                if (this.deviceInfo.isIPad || this.deviceInfo.isAndroidTablet) {
-                    // Larger touch targets for tablets
-                    document.documentElement.style.setProperty('--touch-target-size', '44px');
-                    toolbar.style.padding = '12px';
-                    
-                    // Adjust panel positions for tablet layout
-                    if (layersPanel) {
-                        layersPanel.style.width = '240px';
-                        layersPanel.style.fontSize = '14px';
-                    }
-                } else if (this.deviceInfo.isMobile) {
-                    // Compact layout for mobile
-                    toolbar.style.flexWrap = 'wrap';
-                    toolbar.style.maxWidth = '100%';
-                }
-                
-                if (this.deviceInfo.isCodespaces) {
-                    // Optimize for Codespaces environment
-                    this.optimizeForCodespaces();
-                }
-            }
-            
-            optimizeForCodespaces() {
-                // Reduce resource usage in Codespaces
-                this.ctx.imageSmoothingEnabled = false; // Better performance
-                
-                // Adjust sync frequency for network latency
-                this.syncThrottle = 1000; // Slower sync in remote environment
-                
-                // Show Codespaces-specific UI hints
-                const feedbackEl = document.createElement('div');
-                feedbackEl.style.cssText = `
-                    position: fixed;
-                    bottom: 10px;
-                    left: 10px;
-                    background: rgba(0, 123, 255, 0.1);
-                    border: 1px solid #007bff;
-                    color: #007bff;
-                    padding: 8px 12px;
-                    border-radius: 4px;
-                    font-size: 11px;
-                    z-index: 1000;
-                `;
-                feedbackEl.textContent = '☁️ Running in GitHub Codespaces';
-                document.body.appendChild(feedbackEl);
-                
-                // Auto-hide after 5 seconds
-                setTimeout(() => {
-                    feedbackEl.style.opacity = '0';
-                    setTimeout(() => feedbackEl.remove(), 300);
-                }, 5000);
-            }
-            
-            handleTouchGestures(e) {
-                const touches = Array.from(e.touches);
-                
-                if (touches.length === 1) {
-                    // Single touch - drawing or panning
-                    this.handleSingleTouch(touches[0], e.type);
-                } else if (touches.length === 2) {
-                    // Two-finger gestures - pinch, rotate, pan
-                    this.handleTwoFingerGestures(touches, e.type);
-                } else if (touches.length >= 3) {
-                    // Three+ finger gestures - special actions
-                    this.handleMultiFingerGestures(touches, e.type);
-                }
-            }
-            
-            handleSingleTouch(touch, eventType) {
-                const rect = this.canvas.getBoundingClientRect();
-                const x = touch.clientX - rect.left;
-                const y = touch.clientY - rect.top;
-                
-                switch (eventType) {
-                    case 'touchstart':
-                        this.gestureState.panStartPosition = { x, y };
-                        // Check if this is a long press for context menu
-                        this.longPressTimer = setTimeout(() => {
-                            this.showContextMenu(touch.clientX, touch.clientY);
-                        }, 500);
+                switch (message.command) {
+                    case 'clearCanvas':
+                        clearCanvas();
                         break;
-                        
-                    case 'touchmove':
-                        if (this.longPressTimer) {
-                            clearTimeout(this.longPressTimer);
-                            this.longPressTimer = null;
-                        }
-                        
-                        // Determine if this is drawing or panning
-                        if (this.currentTool === 'pan' || this.gestureState.isPanning) {
-                            this.handleCanvasPan(x, y);
-                        }
+                    case 'setTool':
+                        selectTool(message.tool);
                         break;
-                        
-                    case 'touchend':
-                        if (this.longPressTimer) {
-                            clearTimeout(this.longPressTimer);
-                            this.longPressTimer = null;
-                        }
-                        this.gestureState.isPanning = false;
-                        this.gestureState.panStartPosition = null;
-                        break;
-                }
-            }
-            
-            handleTwoFingerGestures(touches, eventType) {
-                const touch1 = touches[0];
-                const touch2 = touches[1];
-                
-                // Calculate distance for pinch detection
-                const distance = Math.sqrt(
-                    Math.pow(touch2.clientX - touch1.clientX, 2) + 
-                    Math.pow(touch2.clientY - touch1.clientY, 2)
-                );
-                
-                // Calculate angle for rotation detection
-                const angle = Math.atan2(
-                    touch2.clientY - touch1.clientY,
-                    touch2.clientX - touch1.clientX
-                );
-                
-                // Calculate center point
-                const centerX = (touch1.clientX + touch2.clientX) / 2;
-                const centerY = (touch1.clientY + touch2.clientY) / 2;
-                
-                switch (eventType) {
-                    case 'touchstart':
-                        this.gestureState.isPinching = true;
-                        this.gestureState.lastPinchDistance = distance;
-                        this.gestureState.lastRotationAngle = angle;
-                        break;
-                        
-                    case 'touchmove':
-                        if (this.gestureState.isPinching) {
-                            // Handle pinch zoom
-                            const scale = distance / this.gestureState.lastPinchDistance;
-                            this.handleCanvasZoom(scale, centerX, centerY);
-                            this.gestureState.lastPinchDistance = distance;
-                            
-                            // Handle rotation
-                            const rotationDelta = angle - this.gestureState.lastRotationAngle;
-                            if (Math.abs(rotationDelta) > 0.1) {
-                                this.handleCanvasRotation(rotationDelta, centerX, centerY);
-                                this.gestureState.lastRotationAngle = angle;
-                            }
-                        }
-                        break;
-                        
-                    case 'touchend':
-                        this.gestureState.isPinching = false;
-                        break;
-                }
-            }
-            
-            handleMultiFingerGestures(touches, eventType) {
-                if (eventType === 'touchstart' && touches.length === 3) {
-                    // Three-finger tap - undo
-                    this.undo();
-                } else if (eventType === 'touchstart' && touches.length === 4) {
-                    // Four-finger tap - redo
-                    this.redo();
-                }
-            }
-            
-            handleCanvasPan(x, y) {
-                if (!this.gestureState.panStartPosition) return;
-                
-                const deltaX = x - this.gestureState.panStartPosition.x;
-                const deltaY = y - this.gestureState.panStartPosition.y;
-                
-                // Apply pan transformation
-                this.canvasTransform = this.canvasTransform || { x: 0, y: 0, scale: 1, rotation: 0 };
-                this.canvasTransform.x += deltaX;
-                this.canvasTransform.y += deltaY;
-                
-                this.applyCanvasTransform();
-                this.gestureState.panStartPosition = { x, y };
-            }
-            
-            handleCanvasZoom(scale, centerX, centerY) {
-                this.canvasTransform = this.canvasTransform || { x: 0, y: 0, scale: 1, rotation: 0 };
-                
-                // Limit zoom range
-                const newScale = Math.max(0.1, Math.min(5.0, this.canvasTransform.scale * scale));
-                
-                if (newScale !== this.canvasTransform.scale) {
-                    // Adjust position to zoom around center point
-                    const rect = this.canvas.getBoundingClientRect();
-                    const canvasX = centerX - rect.left;
-                    const canvasY = centerY - rect.top;
-                    
-                    this.canvasTransform.x -= (canvasX - this.canvasTransform.x) * (scale - 1);
-                    this.canvasTransform.y -= (canvasY - this.canvasTransform.y) * (scale - 1);
-                    this.canvasTransform.scale = newScale;
-                    
-                    this.applyCanvasTransform();
-                }
-            }
-            
-            handleCanvasRotation(rotationDelta, centerX, centerY) {
-                this.canvasTransform = this.canvasTransform || { x: 0, y: 0, scale: 1, rotation: 0 };
-                this.canvasTransform.rotation += rotationDelta;
-                
-                // Keep rotation in reasonable range
-                if (this.canvasTransform.rotation > Math.PI * 2) {
-                    this.canvasTransform.rotation -= Math.PI * 2;
-                } else if (this.canvasTransform.rotation < -Math.PI * 2) {
-                    this.canvasTransform.rotation += Math.PI * 2;
-                }
-                
-                this.applyCanvasTransform();
-            }
-            
-            applyCanvasTransform() {
-                const transform = this.canvasTransform;
-                if (!transform) return;
-                
-                this.ctx.setTransform(
-                    transform.scale * Math.cos(transform.rotation),
-                    transform.scale * Math.sin(transform.rotation),
-                    -transform.scale * Math.sin(transform.rotation),
-                    transform.scale * Math.cos(transform.rotation),
-                    transform.x,
-                    transform.y
-                );
-                
-                this.redraw();
-            }
-            
-            resetGestureState() {
-                this.gestureState.isPinching = false;
-                this.gestureState.isRotating = false;
-                this.gestureState.isPanning = false;
-                this.gestureState.panStartPosition = null;
-            }
-            
-            handleKeyboardShortcuts(e) {
-                // Accessibility and productivity shortcuts
-                if (e.ctrlKey || e.metaKey) {
-                    switch (e.key) {
-                        case 'z':
-                            e.preventDefault();
-                            if (e.shiftKey) {
-                                this.redo();
-                            } else {
-                                this.undo();
-                            }
-                            break;
-                        case 'y':
-                            e.preventDefault();
-                            this.redo();
-                            break;
-                        case '0':
-                            e.preventDefault();
-                            this.resetCanvasTransform();
-                            break;
-                        case '=':
-                        case '+':
-                            e.preventDefault();
-                            this.handleCanvasZoom(1.1, this.canvas.width / 2, this.canvas.height / 2);
-                            break;
-                        case '-':
-                            e.preventDefault();
-                            this.handleCanvasZoom(0.9, this.canvas.width / 2, this.canvas.height / 2);
-                            break;
-                    }
-                }
-                
-                // Tool shortcuts
-                switch (e.key) {
-                    case 'b':
-                        this.setTool('brush');
-                        break;
-                    case 'p':
-                        this.setTool('pen');
-                        break;
-                    case 'r':
-                        this.setTool('rectangle');
-                        break;
-                    case 'c':
-                        this.setTool('circle');
-                        break;
-                    case 'l':
-                        this.setTool('line');
-                        break;
-                    case 't':
-                        this.setTool('text');
-                        break;
-                    case 'h':
-                        this.setTool('pan');
-                        break;
-                    case 'g':
-                        document.getElementById('grid-btn').click();
-                        break;
-                }
-            }
-            
-            showContextMenu(x, y) {
-                // Create context menu for touch devices
-                const menu = document.createElement('div');
-                menu.className = 'context-menu';
-                menu.style.cssText = `
-                    position: fixed;
-                    left: ${x}px;
-                    top: ${y}px;
-                    background: rgba(30, 30, 30, 0.95);
-                    border: 1px solid #555;
-                    border-radius: 8px;
-                    padding: 8px;
-                    z-index: 1000;
-                    font-size: 12px;
-                    min-width: 120px;
-                `;
-                
-                const menuItems = [
-                    { label: 'Undo', action: () => this.undo() },
-                    { label: 'Redo', action: () => this.redo() },
-                    { label: 'Clear', action: () => this.clear() },
-                    { label: 'Grid', action: () => document.getElementById('grid-btn').click() },
-                    { label: 'Analyze', action: () => analyzeDesign() }
-                ];
-                
-                menuItems.forEach(item => {
-                    const menuItem = document.createElement('div');
-                    menuItem.textContent = item.label;
-                    menuItem.style.cssText = `
-                        padding: 8px 12px;
-                        cursor: pointer;
-                        color: #ccc;
-                        border-radius: 4px;
-                    `;
-                    menuItem.addEventListener('click', () => {
-                        item.action();
-                        menu.remove();
-                    });
-                    menuItem.addEventListener('mouseover', () => {
-                        menuItem.style.background = '#007acc';
-                    });
-                    menuItem.addEventListener('mouseout', () => {
-                        menuItem.style.background = 'transparent';
-                    });
-                    menu.appendChild(menuItem);
-                });
-                
-                document.body.appendChild(menu);
-                
-                // Remove menu after 3 seconds or on outside click
-                setTimeout(() => menu.remove(), 3000);
-                document.addEventListener('click', () => menu.remove(), { once: true });
-            }
-            
-            resetCanvasTransform() {
-                this.canvasTransform = { x: 0, y: 0, scale: 1, rotation: 0 };
-                this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-                this.redraw();
-            }
-            
-            detectPressureSupport() {
-                // Detect if pressure sensitivity is available
-                // This will be true for Wacom tablets, Apple Pencil, etc.
-                this.canvas.addEventListener('pointerdown', (e) => {
-                    if (e.pressure !== undefined && e.pressure > 0) {
-                        this.pressureSupported = true;
-                        this.updatePressureIndicator(true, e.pointerType);
-                        console.log('Pressure sensitivity detected:', e.pointerType);
-                    }
-                }, { once: true });
-            }
-            
-            updatePressureIndicator(supported, pointerType = '') {
-                const indicator = document.getElementById('pressure-indicator');
-                const label = indicator.querySelector('.pressure-label');
-                
-                if (supported) {
-                    indicator.classList.add('active');
-                    label.textContent = `Pressure: ${pointerType || 'On'}`;
-                } else {
-                    indicator.classList.remove('active');
-                    label.textContent = 'Pressure: Off';
-                }
-            }
-            
-            handlePointerDown(e) {
-                this.isDrawing = true;
-                
-                const rect = this.canvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                const pressure = this.pressureSupported ? e.pressure : 0.5;
-                
-                // Start new path
-                this.currentPath = [{
-                    x: x,
-                    y: y,
-                    pressure: pressure,
-                    timestamp: Date.now()
-                }];
-                
-                // Handle different tools
-                switch (this.currentTool) {
-                    case 'brush':
-                    case 'pen':
-                        this.startBrushStroke(x, y, pressure);
-                        break;
-                    case 'rectangle':
-                    case 'circle':
-                    case 'line':
-                        this.startShape(x, y);
-                        break;
-                }
-                
-                // Send event to VS Code extension
-                this.sendToExtension({
-                    type: 'drawingStarted',
-                    tool: this.currentTool,
-                    position: { x, y },
-                    pressure: pressure,
-                    pointerType: e.pointerType
-                });
-            }
-            
-            handlePointerMove(e) {
-                if (!this.isDrawing) return;
-                
-                const rect = this.canvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                const pressure = this.pressureSupported ? e.pressure : 0.5;
-                
-                // Add point to current path
-                this.currentPath.push({
-                    x: x,
-                    y: y,
-                    pressure: pressure,
-                    timestamp: Date.now()
-                });
-                
-                // Handle different tools
-                switch (this.currentTool) {
-                    case 'brush':
-                    case 'pen':
-                        this.continueBrushStroke(x, y, pressure);
-                        break;
-                    case 'rectangle':
-                    case 'circle':
-                    case 'line':
-                        this.updateShape(x, y);
-                        break;
-                }
-            }
-            
-            handlePointerUp(e) {
-                if (!this.isDrawing) return;
-                
-                this.isDrawing = false;
-                
-                const rect = this.canvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                const pressure = this.pressureSupported ? e.pressure : 0.5;
-                
-                // Finish current path
-                this.currentPath.push({
-                    x: x,
-                    y: y,
-                    pressure: pressure,
-                    timestamp: Date.now()
-                });
-                
-                // Handle different tools
-                switch (this.currentTool) {
-                    case 'brush':
-                    case 'pen':
-                        this.finishBrushStroke();
-                        break;
-                    case 'rectangle':
-                    case 'circle':
-                    case 'line':
-                        this.finishShape(x, y);
-                        break;
-                }
-                
-                // Send completed stroke to VS Code extension and sync server
-                const elementData = this.createElementFromPath();
-                this.sendToExtension({
-                    type: 'drawingCompleted',
-                    tool: this.currentTool,
-                    path: this.currentPath,
-                    element: elementData,
-                    style: {
-                        color: this.brushColor,
-                        size: this.brushSize,
-                        opacity: this.brushOpacity
-                    }
-                });
-                
-                // Send to sync server for Canvas → Code → Live App flow
-                this.sendToSyncServer({
-                    type: 'CANVAS_SHAPE_DRAWN',
-                    payload: elementData
-                });
-                
-                this.currentPath = [];
-            }
-            
-            startBrushStroke(x, y, pressure) {
-                this.ctx.beginPath();
-                this.ctx.moveTo(x, y);
-                
-                // Set brush properties based on pressure
-                const dynamicSize = this.pressureSupported ? 
-                    this.brushSize * (0.3 + pressure * 0.7) : this.brushSize;
-                const dynamicOpacity = this.pressureSupported ? 
-                    this.brushOpacity * (0.5 + pressure * 0.5) : this.brushOpacity;
-                
-                this.ctx.lineWidth = dynamicSize;
-                this.ctx.globalAlpha = dynamicOpacity;
-                this.ctx.strokeStyle = this.brushColor;
-            }
-            
-            continueBrushStroke(x, y, pressure) {
-                // Update brush properties based on pressure
-                if (this.pressureSupported) {
-                    const dynamicSize = this.brushSize * (0.3 + pressure * 0.7);
-                    const dynamicOpacity = this.brushOpacity * (0.5 + pressure * 0.5);
-                    
-                    this.ctx.lineWidth = dynamicSize;
-                    this.ctx.globalAlpha = dynamicOpacity;
-                }
-                
-                this.ctx.lineTo(x, y);
-                this.ctx.stroke();
-                this.ctx.beginPath();
-                this.ctx.moveTo(x, y);
-            }
-            
-            finishBrushStroke() {
-                this.ctx.stroke();
-                this.ctx.globalAlpha = 1.0; // Reset alpha
-            }
-            
-            startShape(x, y) {
-                this.shapeStart = { x, y };
-                this.tempCanvas = document.createElement('canvas');
-                this.tempCanvas.width = this.canvas.width;
-                this.tempCanvas.height = this.canvas.height;
-                this.tempCtx = this.tempCanvas.getContext('2d');
-                
-                // Copy current canvas to temp canvas
-                this.tempCtx.drawImage(this.canvas, 0, 0);
-            }
-            
-            updateShape(x, y) {
-                // Restore canvas from temp
-                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                this.ctx.drawImage(this.tempCanvas, 0, 0);
-                
-                // Draw preview shape
-                this.ctx.strokeStyle = this.brushColor;
-                this.ctx.lineWidth = this.brushSize;
-                this.ctx.globalAlpha = 0.7; // Semi-transparent preview
-                
-                const startX = this.shapeStart.x;
-                const startY = this.shapeStart.y;
-                const width = x - startX;
-                const height = y - startY;
-                
-                switch (this.currentTool) {
-                    case 'rectangle':
-                        this.ctx.strokeRect(startX, startY, width, height);
-                        break;
-                    case 'circle':
-                        const radius = Math.sqrt(width * width + height * height);
-                        this.ctx.beginPath();
-                        this.ctx.arc(startX, startY, radius, 0, 2 * Math.PI);
-                        this.ctx.stroke();
-                        break;
-                    case 'line':
-                        this.ctx.beginPath();
-                        this.ctx.moveTo(startX, startY);
-                        this.ctx.lineTo(x, y);
-                        this.ctx.stroke();
-                        break;
-                }
-                
-                this.ctx.globalAlpha = 1.0;
-            }
-            
-            finishShape(x, y) {
-                // Draw final shape
-                this.ctx.strokeStyle = this.brushColor;
-                this.ctx.lineWidth = this.brushSize;
-                this.ctx.globalAlpha = this.brushOpacity;
-                
-                const startX = this.shapeStart.x;
-                const startY = this.shapeStart.y;
-                const width = x - startX;
-                const height = y - startY;
-                
-                switch (this.currentTool) {
-                    case 'rectangle':
-                        this.ctx.strokeRect(startX, startY, width, height);
-                        break;
-                    case 'circle':
-                        const radius = Math.sqrt(width * width + height * height);
-                        this.ctx.beginPath();
-                        this.ctx.arc(startX, startY, radius, 0, 2 * Math.PI);
-                        this.ctx.stroke();
-                        break;
-                    case 'line':
-                        this.ctx.beginPath();
-                        this.ctx.moveTo(startX, startY);
-                        this.ctx.lineTo(x, y);
-                        this.ctx.stroke();
-                        break;
-                }
-                
-                this.ctx.globalAlpha = 1.0;
-            }
-            
-            setTool(tool) {
-                this.currentTool = tool;
-                
-                // Update cursor based on tool
-                switch (tool) {
-                    case 'brush':
-                    case 'pen':
-                        this.canvas.style.cursor = 'crosshair';
-                        break;
-                    case 'rectangle':
-                    case 'circle':
-                    case 'line':
-                        this.canvas.style.cursor = 'crosshair';
+                    case 'connectionStatus':
+                        updateConnectionStatus(message.connected);
                         break;
                     default:
-                        this.canvas.style.cursor = 'default';
+                        console.log('Unknown message:', message);
                 }
-            }
-            
-            setBrushSize(size) {
-                this.brushSize = Math.max(1, Math.min(100, size));
-            }
-            
-            setBrushColor(color) {
-                this.brushColor = color;
-            }
-            
-            setBrushOpacity(opacity) {
-                this.brushOpacity = Math.max(0, Math.min(1, opacity));
-            }
-            
-            sendToExtension(message) {
-                if (window.vscode) {
-                    window.vscode.postMessage(message);
-                }
-            }
-            
-            sendToSyncServer(message) {
-                // Send message to sync server via WebSocket
-                if (window.syncServerWS && window.syncServerWS.readyState === WebSocket.OPEN) {
-                    window.syncServerWS.send(JSON.stringify(message));
-                }
-            }
-            
-            createElementFromPath() {
-                const elementId = `element_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                
-                if (this.currentTool === 'brush' || this.currentTool === 'pen') {
-                    // Create freehand element
-                    return {
-                        elementId: elementId,
-                        type: 'freehand',
-                        path: this.currentPath,
-                        style: {
-                            stroke: this.brushColor,
-                            strokeWidth: this.brushSize,
-                            opacity: this.brushOpacity
-                        },
-                        layerId: window.canvasState ? window.canvasState.currentLayerId : 'layer_001',
-                        timestamp: Date.now()
-                    };
-                } else {
-                    // For shapes, create appropriate element
-                    const bounds = this.getPathBounds(this.currentPath);
-                    return {
-                        elementId: elementId,
-                        type: this.currentTool,
-                        position: { x: bounds.minX, y: bounds.minY },
-                        size: { width: bounds.width, height: bounds.height },
-                        style: {
-                            fill: this.currentTool === 'line' ? 'transparent' : this.brushColor,
-                            stroke: this.currentTool === 'line' ? this.brushColor : undefined,
-                            strokeWidth: this.brushSize,
-                            opacity: this.brushOpacity
-                        },
-                        layerId: window.canvasState ? window.canvasState.currentLayerId : 'layer_001',
-                        timestamp: Date.now()
-                    };
-                }
-            }
-            
-            getPathBounds(path) {
-                if (!path || path.length === 0) {
-                    return { minX: 0, minY: 0, width: 0, height: 0 };
-                }
-                
-                let minX = path[0].x, maxX = path[0].x;
-                let minY = path[0].y, maxY = path[0].y;
-                
-                for (const point of path) {
-                    minX = Math.min(minX, point.x);
-                    maxX = Math.max(maxX, point.x);
-                    minY = Math.min(minY, point.y);
-                    maxY = Math.max(maxY, point.y);
-                }
-                
-                return {
-                    minX: minX,
-                    minY: minY,
-                    width: maxX - minX,
-                    height: maxY - minY
-                };
-            }
-            
-            clear() {
-                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-            }
-        }
-        
-        // Initialize drawing engine with professional tools
-        const canvas = document.getElementById('drawing-canvas');
-        const drawingEngine = new DrawingEngine(canvas);
-        
-        // Initialize professional drawing tools and color system
-        const drawingTools = new DrawingTools(canvas, drawingEngine.ctx);
-        const colorSystem = new ColorSystem();
-        
-        // Enhanced Drawing Engine with Professional Tools
-        class EnhancedDrawingEngine extends DrawingEngine {
-            constructor(canvas) {
-                super(canvas);
-                this.tools = drawingTools;
-                this.colorSystem = colorSystem;
-                this.stateManager = new CanvasStateManager(canvas, this.ctx);
-                this.alignmentGuides = new AlignmentGuides(canvas, this.ctx, this.stateManager);
-                this.setupUI();
-                this.setupStateManagement();
-                this.setupKeyboardShortcuts();
-            }
-            
-            setupUI() {
-                this.setupSizeControl();
-                this.setupOpacityControl();
-                this.setupColorPicker();
-                this.updateColorDisplay();
-                this.setupHistoryControls();
-                this.setupGridAndGuides();
-                this.setupLayersPanel();
-                this.setupCRAPAnalysis();
-            }
-            
-            setupStateManagement() {
-                // Set up state restoration callback
-                this.stateManager.onStateRestoredCallback = () => {
-                    this.updateLayersUI();
-                    this.updateHistoryButtons();
-                };
-            }
-            
-            setupKeyboardShortcuts() {
-                document.addEventListener('keydown', (e) => {
-                    if (e.ctrlKey || e.metaKey) {
-                        switch (e.key) {
-                            case 'z':
-                                e.preventDefault();
-                                if (e.shiftKey) {
-                                    this.redo();
-                                } else {
-                                    this.undo();
-                                }
-                                break;
-                            case 'y':
-                                e.preventDefault();
-                                this.redo();
-                                break;
-                            case 's':
-                                e.preventDefault();
-                                this.exportDesignData();
-                                break;
-                        }
-                    }
-                });
-            }
-            
-            setupHistoryControls() {
-                const undoBtn = document.getElementById('undo-btn');
-                const redoBtn = document.getElementById('redo-btn');
-                
-                undoBtn.addEventListener('click', () => this.undo());
-                redoBtn.addEventListener('click', () => this.redo());
-                
-                this.updateHistoryButtons();
-            }
-            
-            setupGridAndGuides() {
-                const gridBtn = document.getElementById('grid-btn');
-                const guidesBtn = document.getElementById('guides-btn');
-                const snapBtn = document.getElementById('snap-btn');
-                
-                gridBtn.addEventListener('click', () => {
-                    const visible = !this.stateManager.designData.canvas.grid.visible;
-                    this.alignmentGuides.showGrid(visible);
-                    gridBtn.classList.toggle('active-guide', visible);
-                });
-                
-                guidesBtn.addEventListener('click', () => {
-                    const visible = !this.alignmentGuides.guides.visible;
-                    this.alignmentGuides.showAlignmentGuides(visible);
-                    guidesBtn.classList.toggle('active-guide', visible);
-                });
-                
-                snapBtn.addEventListener('click', () => {
-                    const enabled = this.alignmentGuides.toggleGridSnap();
-                    snapBtn.classList.toggle('active-guide', enabled);
-                });
-            }
-            
-            setupLayersPanel() {
-                const addLayerBtn = document.getElementById('add-layer-btn');
-                const deleteLayerBtn = document.getElementById('delete-layer-btn');
-                const duplicateLayerBtn = document.getElementById('duplicate-layer-btn');
-                
-                addLayerBtn.addEventListener('click', () => this.addLayer());
-                deleteLayerBtn.addEventListener('click', () => this.deleteCurrentLayer());
-                duplicateLayerBtn.addEventListener('click', () => this.duplicateCurrentLayer());
-                
-                this.updateLayersUI();
-            }
-            
-            setupCRAPAnalysis() {
-                const crapBtn = document.getElementById('crap-analysis-btn');
-                const closeCrapBtn = document.getElementById('close-crap-btn');
-                const crapPanel = document.getElementById('crap-panel');
-                
-                crapBtn.addEventListener('click', () => {
-                    this.showCRAPAnalysis();
-                    crapPanel.classList.add('visible');
-                });
-                
-                closeCrapBtn.addEventListener('click', () => {
-                    crapPanel.classList.remove('visible');
-                });
-            }
-            
-            setupSizeControl() {
-                const sizeSlider = document.getElementById('size-slider');
-                const sizeValue = document.getElementById('size-value');
-                
-                sizeSlider.addEventListener('input', (e) => {
-                    const size = parseInt(e.target.value);
-                    this.setBrushSize(size);
-                    this.tools.setToolProperty('size', size);
-                    sizeValue.textContent = size;
-                });
-            }
-            
-            setupOpacityControl() {
-                const opacitySlider = document.getElementById('opacity-slider');
-                const opacityValue = document.getElementById('opacity-value');
-                
-                opacitySlider.addEventListener('input', (e) => {
-                    const opacity = parseInt(e.target.value) / 100;
-                    this.setBrushOpacity(opacity);
-                    this.tools.setToolProperty('opacity', opacity);
-                    opacityValue.textContent = `${e.target.value}%`;
-                });
-            }
-            
-            setupColorPicker() {
-                const currentColor = document.getElementById('current-color');
-                const colorPanel = document.getElementById('color-picker-panel');
-                const hueSlider = document.getElementById('hue-slider');
-                const saturationSlider = document.getElementById('saturation-slider');
-                const brightnessSlider = document.getElementById('brightness-slider');
-                const hueValue = document.getElementById('hue-value');
-                const saturationValue = document.getElementById('saturation-value');
-                const brightnessValue = document.getElementById('brightness-value');
-                const harmonySelector = document.getElementById('harmony-selector');
-                
-                // Toggle color picker panel
-                currentColor.addEventListener('click', () => {
-                    colorPanel.classList.toggle('active');
-                });
-                
-                // Close panel when clicking outside
-                document.addEventListener('click', (e) => {
-                    if (!e.target.closest('.color-picker-container')) {
-                        colorPanel.classList.remove('active');
-                    }
-                });
-                
-                // HSB sliders
-                const updateColor = () => {
-                    const h = parseInt(hueSlider.value);
-                    const s = parseInt(saturationSlider.value);
-                    const b = parseInt(brightnessSlider.value);
-                    
-                    this.colorSystem.setCurrentColor({ h, s, b });
-                    const hexColor = this.colorSystem.getCurrentColorHex();
-                    
-                    this.setBrushColor(hexColor);
-                    this.tools.setToolProperty('color', hexColor);
-                    this.updateColorDisplay();
-                    this.updateColorHarmony();
-                    this.updateAccessibilityInfo();
-                };
-                
-                hueSlider.addEventListener('input', (e) => {
-                    hueValue.value = e.target.value;
-                    updateColor();
-                });
-                
-                saturationSlider.addEventListener('input', (e) => {
-                    saturationValue.value = e.target.value;
-                    updateColor();
-                });
-                
-                brightnessSlider.addEventListener('input', (e) => {
-                    brightnessValue.value = e.target.value;
-                    updateColor();
-                });
-                
-                // HSB value inputs
-                hueValue.addEventListener('input', (e) => {
-                    hueSlider.value = e.target.value;
-                    updateColor();
-                });
-                
-                saturationValue.addEventListener('input', (e) => {
-                    saturationSlider.value = e.target.value;
-                    updateColor();
-                });
-                
-                brightnessValue.addEventListener('input', (e) => {
-                    brightnessSlider.value = e.target.value;
-                    updateColor();
-                });
-                
-                // Color harmony
-                harmonySelector.addEventListener('change', () => {
-                    this.updateColorHarmony();
-                });
-                
-                // Initialize swatches
-                this.updateSwatches();
-            }
-            
-            updateColorDisplay() {
-                const currentColor = document.getElementById('current-color');
-                const hexColor = this.colorSystem.getCurrentColorHex();
-                currentColor.style.backgroundColor = hexColor;
-                
-                // Update slider backgrounds
-                const hue = this.colorSystem.currentColor.h;
-                const saturation = this.colorSystem.currentColor.s;
-                const brightness = this.colorSystem.currentColor.b;
-                
-                const saturationSlider = document.getElementById('saturation-slider');
-                const brightnessSlider = document.getElementById('brightness-slider');
-                
-                const satColor = this.colorSystem.hsbToHex(hue, 100, brightness);
-                const brightColor = this.colorSystem.hsbToHex(hue, saturation, 100);
-                
-                saturationSlider.style.background = `linear-gradient(to right, #808080, ${satColor})`;
-                brightnessSlider.style.background = `linear-gradient(to right, #000000, ${brightColor})`;
-            }
-            
-            updateColorHarmony() {
-                const harmonySelector = document.getElementById('harmony-selector');
-                const harmonyContainer = document.getElementById('color-harmony');
-                const currentColor = this.colorSystem.getCurrentColorHex();
-                const harmonyType = harmonySelector.value;
-                
-                const harmonyColors = this.colorSystem.getColorHarmony(currentColor, harmonyType);
-                
-                harmonyContainer.innerHTML = '';
-                harmonyColors.forEach(color => {
-                    const colorDiv = document.createElement('div');
-                    colorDiv.className = 'harmony-color';
-                    colorDiv.style.backgroundColor = color;
-                    colorDiv.title = color;
-                    colorDiv.addEventListener('click', () => {
-                        this.setColorFromHex(color);
-                    });
-                    harmonyContainer.appendChild(colorDiv);
-                });
-            }
-            
-            updateSwatches() {
-                const swatchesGrid = document.getElementById('swatches-grid');
-                swatchesGrid.innerHTML = '';
-                
-                this.colorSystem.swatches.forEach((swatch, index) => {
-                    const swatchDiv = document.createElement('div');
-                    swatchDiv.className = 'swatch-color';
-                    swatchDiv.style.backgroundColor = swatch.color;
-                    swatchDiv.setAttribute('data-name', swatch.name);
-                    swatchDiv.title = `${swatch.name} (${swatch.color})`;
-                    swatchDiv.addEventListener('click', () => {
-                        this.setColorFromHex(swatch.color);
-                    });
-                    swatchesGrid.appendChild(swatchDiv);
-                });
-            }
-            
-            updateAccessibilityInfo() {
-                const accessibilityInfo = document.getElementById('accessibility-info');
-                const contrastRatio = document.getElementById('contrast-ratio');
-                const currentColor = this.colorSystem.getCurrentColorHex();
-                const backgroundColor = '#FFFFFF'; // Assume white background
-                
-                const accessibility = this.colorSystem.checkAccessibility(currentColor, backgroundColor);
-                
-                contrastRatio.textContent = accessibility.ratio.toFixed(2);
-                
-                let className = 'accessibility-error';
-                let status = 'Poor';
-                
-                if (accessibility.aaa) {
-                    className = 'accessibility-good';
-                    status = 'AAA';
-                } else if (accessibility.aa) {
-                    className = 'accessibility-good';
-                    status = 'AA';
-                } else if (accessibility.aaLarge) {
-                    className = 'accessibility-warning';
-                    status = 'AA Large';
-                }
-                
-                accessibilityInfo.className = `accessibility-info ${className}`;
-                contrastRatio.textContent = `${accessibility.ratio.toFixed(2)} (${status})`;
-            }
-            
-            setColorFromHex(hex) {
-                const hsb = this.colorSystem.hexToHsb(hex);
-                if (hsb) {
-                    this.colorSystem.setCurrentColor(hsb);
-                    
-                    // Update UI
-                    document.getElementById('hue-slider').value = hsb.h;
-                    document.getElementById('saturation-slider').value = hsb.s;
-                    document.getElementById('brightness-slider').value = hsb.b;
-                    document.getElementById('hue-value').value = hsb.h;
-                    document.getElementById('saturation-value').value = hsb.s;
-                    document.getElementById('brightness-value').value = hsb.b;
-                    
-                    this.setBrushColor(hex);
-                    this.tools.setToolProperty('color', hex);
-                    this.updateColorDisplay();
-                    this.updateColorHarmony();
-                    this.updateAccessibilityInfo();
-                }
-            }
-            
-            setTool(tool) {
-                super.setTool(tool);
-                this.tools.setTool(tool);
-            }
-            
-            handlePointerDown(e) {
-                super.handlePointerDown(e);
-                
-                const rect = this.canvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                const pressure = this.pressureSupported ? e.pressure : 0.5;
-                
-                const currentTool = this.tools.getCurrentTool();
-                
-                if (currentTool.startStroke) {
-                    currentTool.startStroke(x, y, pressure);
-                } else if (currentTool.startShape) {
-                    currentTool.startShape(x, y);
-                }
-            }
-            
-            handlePointerMove(e) {
-                if (!this.isDrawing) return;
-                
-                const rect = this.canvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                const pressure = this.pressureSupported ? e.pressure : 0.5;
-                
-                const currentTool = this.tools.getCurrentTool();
-                
-                if (currentTool.continueStroke) {
-                    currentTool.continueStroke(x, y, pressure);
-                } else if (currentTool.updateShape) {
-                    currentTool.updateShape(x, y);
-                }
-            }
-            
-            handlePointerUp(e) {
-                if (!this.isDrawing) return;
-                
-                const rect = this.canvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                
-                const currentTool = this.tools.getCurrentTool();
-                
-                if (currentTool.endStroke) {
-                    currentTool.endStroke();
-                } else if (currentTool.finishShape) {
-                    currentTool.finishShape(x, y);
-                }
-                
-                // Save state after drawing operation
-                this.stateManager.saveState(`${this.currentTool} drawing`);
-                this.updateHistoryButtons();
-                
-                super.handlePointerUp(e);
-            }
-            
-            // Layer Management Methods
-            addLayer(name = '') {
-                const layer = this.stateManager.createLayer(name);
-                this.updateLayersUI();
-                this.stateManager.saveState('Added layer');
-                return layer;
-            }
-            
-            deleteCurrentLayer() {
-                if (this.stateManager.deleteLayer(this.stateManager.currentLayerId)) {
-                    this.updateLayersUI();
-                    this.stateManager.saveState('Deleted layer');
-                }
-            }
-            
-            duplicateCurrentLayer() {
-                const currentLayer = this.stateManager.getCurrentLayer();
-                if (currentLayer) {
-                    const newLayer = this.stateManager.createLayer(`${currentLayer.name} Copy`);
-                    this.updateLayersUI();
-                    this.stateManager.saveState('Duplicated layer');
-                }
-            }
-            
-            updateLayersUI() {
-                const layersList = document.getElementById('layers-list');
-                layersList.innerHTML = '';
-                
-                // Reverse order for display (top layer first)
-                const reversedLayers = [...this.stateManager.layers].reverse();
-                
-                reversedLayers.forEach(layer => {
-                    const layerItem = document.createElement('div');
-                    layerItem.className = `layer-item ${layer.id === this.stateManager.currentLayerId ? 'active' : ''}`;
-                    
-                    layerItem.innerHTML = `
-                        <div class="layer-visibility" data-layer-id="${layer.id}">
-                            ${layer.visible ? '👁' : '🚫'}
-                        </div>
-                        <div class="layer-name">${layer.name}</div>
-                        <div class="layer-locked">
-                            ${layer.locked ? '🔒' : ''}
-                        </div>
-                    `;
-                    
-                    // Layer selection
-                    layerItem.addEventListener('click', (e) => {
-                        if (!e.target.classList.contains('layer-visibility')) {
-                            this.stateManager.setCurrentLayer(layer.id);
-                            this.updateLayersUI();
-                        }
-                    });
-                    
-                    // Visibility toggle
-                    const visibilityBtn = layerItem.querySelector('.layer-visibility');
-                    visibilityBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        this.stateManager.setLayerVisibility(layer.id, !layer.visible);
-                        this.updateLayersUI();
-                    });
-                    
-                    layersList.appendChild(layerItem);
-                });
-            }
-            
-            // History Management Methods
-            undo() {
-                if (this.stateManager.undo()) {
-                    this.updateHistoryButtons();
-                    return true;
-                }
-                return false;
-            }
-            
-            redo() {
-                if (this.stateManager.redo()) {
-                    this.updateHistoryButtons();
-                    return true;
-                }
-                return false;
-            }
-            
-            updateHistoryButtons() {
-                const undoBtn = document.getElementById('undo-btn');
-                const redoBtn = document.getElementById('redo-btn');
-                
-                undoBtn.disabled = !this.stateManager.canUndo();
-                redoBtn.disabled = !this.stateManager.canRedo();
-            }
-            
-            // CRAP Analysis Methods
-            showCRAPAnalysis() {
-                const analysis = this.alignmentGuides.analyzeCRAP();
-                const crapContent = document.getElementById('crap-content');
-                
-                crapContent.innerHTML = '';
-                
-                Object.entries(analysis).forEach(([principle, data]) => {
-                    const principleDiv = document.createElement('div');
-                    principleDiv.className = 'crap-principle';
-                    
-                    principleDiv.innerHTML = `
-                        <div class="crap-principle-name">${principle.toUpperCase()}</div>
-                        <div class="crap-score">
-                            <div class="crap-score-bar">
-                                <div class="crap-score-fill" style="width: ${data.score}%"></div>
-                            </div>
-                            <div class="crap-score-value">${data.score}/100</div>
-                        </div>
-                        <div class="crap-suggestions">
-                            ${data.suggestions.join('. ')}
-                            ${data.issues.length > 0 ? '<br>Issues: ' + data.issues.join('. ') : ''}
-                        </div>
-                    `;
-                    
-                    crapContent.appendChild(principleDiv);
-                });
-            }
-            
-            // Export/Import Methods
-            exportDesignData() {
-                const data = this.stateManager.exportDesignData();
-                
-                // Send to VS Code extension
-                this.sendToExtension({
-                    type: 'exportDesignData',
-                    data: data,
-                    filename: 'design-data.json'
-                });
-                
-                return data;
-            }
-            
-            importDesignData(data) {
-                if (this.stateManager.importDesignData(data)) {
-                    this.updateLayersUI();
-                    this.updateHistoryButtons();
-                    return true;
-                }
-                return false;
-            }
-            
-            // Override clear method to use state manager
-            clear() {
-                this.stateManager.clear();
-                this.updateLayersUI();
-                this.updateHistoryButtons();
-            }
-            
-            // Enhanced methods for CRAP tools
-            setFontSize(size) {
-                this.currentFontSize = size;
-                // Update any selected text elements
-                const selectedElements = this.getSelectedElements();
-                selectedElements.forEach(element => {
-                    if (element.type === 'text') {
-                        element.style.fontSize = size;
-                        this.alignmentGuides.addTextElement(element);
-                    }
-                });
-                this.redraw();
-            }
-            
-            getSelectedElements() {
-                // Return currently selected elements (basic implementation)
-                return this.stateManager.designData.elements.filter(el => el.selected);
-            }
-            
-            redraw() {
-                // Clear canvas
-                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                
-                // Draw grid if enabled
-                this.alignmentGuides.drawGrid();
-                
-                // Draw baseline grid if enabled
-                this.alignmentGuides.drawBaselineGrid();
-                
-                // Draw all elements
-                this.stateManager.designData.elements.forEach(element => {
-                    this.drawElement(element);
-                });
-                
-                // Draw alignment guides if visible
-                if (this.alignmentGuides.guides.visible) {
-                    // Guides are drawn dynamically during drawing operations
-                }
-            }
-            
-            drawElement(element) {
-                this.ctx.save();
-                
-                // Apply element styles
-                if (element.style) {
-                    this.ctx.fillStyle = element.style.fill || '#000000';
-                    this.ctx.strokeStyle = element.style.stroke || '#000000';
-                    this.ctx.lineWidth = element.style.strokeWidth || 1;
-                    this.ctx.globalAlpha = element.style.opacity || 1;
-                }
-                
-                switch (element.type) {
-                    case 'rectangle':
-                        this.ctx.fillRect(element.position.x, element.position.y, element.size.width, element.size.height);
-                        if (element.style?.stroke) {
-                            this.ctx.strokeRect(element.position.x, element.position.y, element.size.width, element.size.height);
-                        }
-                        break;
-                        
-                    case 'circle':
-                        this.ctx.beginPath();
-                        this.ctx.arc(element.position.x, element.position.y, element.radius, 0, 2 * Math.PI);
-                        this.ctx.fill();
-                        if (element.style?.stroke) {
-                            this.ctx.stroke();
-                        }
-                        break;
-                        
-                    case 'line':
-                        this.ctx.beginPath();
-                        this.ctx.moveTo(element.start.x, element.start.y);
-                        this.ctx.lineTo(element.end.x, element.end.y);
-                        this.ctx.stroke();
-                        break;
-                        
-                    case 'text':
-                        if (element.style?.fontSize) {
-                            this.ctx.font = `${element.style.fontWeight || 400} ${element.style.fontSize}px ${element.style.fontFamily || 'Arial'}`;
-                        }
-                        this.ctx.fillText(element.text || '', element.position.x, element.position.y);
-                        break;
-                        
-                    case 'freehand':
-                        if (element.path) {
-                            const path = new Path2D(element.path);
-                            this.ctx.stroke(path);
-                        }
-                        break;
-                }
-                
-                this.ctx.restore();
-            }
-        }
-        
-        // Replace the basic drawing engine with enhanced version
-        const enhancedDrawingEngine = new EnhancedDrawingEngine(canvas);
-        
-        // Enhanced UI Event Handlers
-        function setupEnhancedUI() {
-            // Typography tools
-            document.getElementById('text-tool-btn').addEventListener('click', () => {
-                enhancedDrawingEngine.setTool('text');
-                document.getElementById('typography-panel').classList.toggle('visible');
             });
             
-            document.getElementById('font-size-selector').addEventListener('change', (e) => {
-                enhancedDrawingEngine.setFontSize(parseInt(e.target.value));
-            });
-            
-            // Baseline grid controls
-            document.getElementById('baseline-btn').addEventListener('click', () => {
-                const enabled = enhancedDrawingEngine.alignmentGuides.typographyTools.baselineGrid;
-                enhancedDrawingEngine.alignmentGuides.enableBaselineGrid(!enabled);
-                document.getElementById('baseline-btn').classList.toggle('active', !enabled);
-                document.getElementById('baseline-grid-checkbox').checked = !enabled;
-            });
-            
-            document.getElementById('baseline-grid-checkbox').addEventListener('change', (e) => {
-                enhancedDrawingEngine.alignmentGuides.enableBaselineGrid(e.target.checked);
-                document.getElementById('baseline-btn').classList.toggle('active', e.target.checked);
-            });
-            
-            document.getElementById('baseline-spacing-slider').addEventListener('input', (e) => {
-                const spacing = parseInt(e.target.value);
-                enhancedDrawingEngine.alignmentGuides.enableBaselineGrid(true, spacing);
-                document.getElementById('baseline-spacing-value').textContent = spacing + 'px';
-            });
-            
-            // Layout suggestions
-            document.getElementById('suggestions-btn').addEventListener('click', () => {
-                showLayoutSuggestions();
-            });
-            
-            document.getElementById('analyze-btn').addEventListener('click', () => {
-                analyzeDesign();
-            });
-            
-            // Grid configuration
-            document.getElementById('grid-btn').addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-                document.getElementById('grid-config-panel').classList.toggle('visible');
-            });
-            
-            document.getElementById('grid-size-slider').addEventListener('input', (e) => {
-                const size = parseInt(e.target.value);
-                enhancedDrawingEngine.alignmentGuides.setGridSize(size);
-                document.getElementById('grid-size-value').value = size;
-            });
-            
-            document.getElementById('grid-subdivisions-slider').addEventListener('input', (e) => {
-                const subdivisions = parseInt(e.target.value);
-                enhancedDrawingEngine.alignmentGuides.setGridSubdivisions(subdivisions);
-                document.getElementById('grid-subdivisions-value').value = subdivisions;
-            });
-            
-            document.getElementById('grid-opacity-slider').addEventListener('input', (e) => {
-                const opacity = parseInt(e.target.value) / 100;
-                enhancedDrawingEngine.alignmentGuides.setGridOpacity(opacity);
-                document.getElementById('grid-opacity-value').textContent = e.target.value + '%';
-            });
-            
-            // Typography actions
-            document.getElementById('align-text-baseline-btn').addEventListener('click', () => {
-                enhancedDrawingEngine.alignmentGuides.alignTextToBaseline();
-                enhancedDrawingEngine.redraw();
-            });
-            
-            document.getElementById('analyze-typography-btn').addEventListener('click', () => {
-                enhancedDrawingEngine.alignmentGuides.analyzeTypographyConsistency();
-                showLayoutSuggestions();
-            });
-            
-            // Panel close buttons
-            document.getElementById('close-suggestions-btn').addEventListener('click', () => {
-                document.getElementById('suggestions-panel').classList.remove('visible');
-            });
-            
-            document.getElementById('close-grid-config-btn').addEventListener('click', () => {
-                document.getElementById('grid-config-panel').classList.remove('visible');
-            });
-            
-            document.getElementById('close-typography-btn').addEventListener('click', () => {
-                document.getElementById('typography-panel').classList.remove('visible');
+            // Send initial ready message to extension
+            sendMessage({
+                command: 'canvasReady',
+                data: {
+                    width: canvas.width,
+                    height: canvas.height
+                }
             });
         }
         
-        function showLayoutSuggestions() {
-            const suggestions = enhancedDrawingEngine.alignmentGuides.analyzeDesignConsistency();
-            const panel = document.getElementById('suggestions-panel');
-            const content = document.getElementById('suggestions-content');
-            
-            content.innerHTML = '';
-            
-            if (suggestions.length === 0) {
-                content.innerHTML = '<div class="suggestion-item info"><div class="suggestion-message">No layout suggestions at this time. Your design looks good!</div></div>';
-            } else {
-                suggestions.forEach((suggestion, index) => {
-                    const item = document.createElement('div');
-                    item.className = `suggestion-item ${suggestion.severity}`;
-                    
-                    item.innerHTML = `
-                        <div class="suggestion-title">${getSuggestionTitle(suggestion.type)}</div>
-                        <div class="suggestion-message">${suggestion.message}</div>
-                        <div class="suggestion-actions">
-                            <button class="suggestion-btn" onclick="applySuggestion(${index})">Apply</button>
-                            <button class="suggestion-btn secondary" onclick="this.parentElement.parentElement.style.display='none'">Dismiss</button>
-                        </div>
-                    `;
-                    
-                    content.appendChild(item);
-                });
-            }
-            
-            panel.classList.add('visible');
-        }
-        
-        function getSuggestionTitle(type) {
-            const titles = {
-                'spacing': 'Spacing Consistency',
-                'alignment': 'Alignment Opportunities',
-                'color': 'Color Usage',
-                'size': 'Size Variation',
-                'grouping': 'Element Grouping',
-                'typography': 'Typography'
-            };
-            return titles[type] || 'Layout Suggestion';
-        }
-        
-        function applySuggestion(index) {
-            const suggestions = enhancedDrawingEngine.alignmentGuides.layoutSuggestions;
-            if (suggestions[index]) {
-                const success = enhancedDrawingEngine.alignmentGuides.applySuggestion(suggestions[index]);
-                if (success) {
-                    enhancedDrawingEngine.redraw();
-                    // Refresh suggestions
-                    showLayoutSuggestions();
-                }
-            }
-        }
-        
-        function analyzeDesign() {
-            const crapAnalysis = enhancedDrawingEngine.alignmentGuides.analyzeCRAP();
-            const layoutSuggestions = enhancedDrawingEngine.alignmentGuides.analyzeDesignConsistency();
-            
-            // Show CRAP analysis
-            enhancedDrawingEngine.showCRAPAnalysis();
-            document.getElementById('crap-panel').classList.add('visible');
-            
-            // Show layout suggestions
-            showLayoutSuggestions();
-        }
-        
-        // Initialize enhanced UI
-        setupEnhancedUI();
-        
-        // Tool selection handling
-        document.querySelectorAll('.tool-button').forEach(button => {
-            button.addEventListener('click', () => {
-                document.querySelectorAll('.tool-button').forEach(b => b.classList.remove('active'));
-                button.classList.add('active');
-                
-                const tool = button.dataset.tool;
-                enhancedDrawingEngine.setTool(tool);
-                
-                // Send tool change to extension
-                enhancedDrawingEngine.sendToExtension({
-                    type: 'toolChanged',
-                    tool: tool
-                });
-            });
-        });
-        
-        // VS Code webview API setup
-        const vscode = acquireVsCodeApi();
-        window.vscode = vscode;
-        
-        // Message handling from VS Code extension
-        window.addEventListener('message', event => {
-            const message = event.data;
-            switch (message.type) {
-                case 'setCanvasSize':
-                    canvas.width = message.width;
-                    canvas.height = message.height;
-                    break;
-                case 'setBrushSize':
-                    enhancedDrawingEngine.setBrushSize(message.size);
-                    document.getElementById('size-slider').value = message.size;
-                    document.getElementById('size-value').textContent = message.size;
-                    break;
-                case 'setBrushColor':
-                    enhancedDrawingEngine.setColorFromHex(message.color);
-                    break;
-                case 'setBrushOpacity':
-                    enhancedDrawingEngine.setBrushOpacity(message.opacity);
-                    const opacityPercent = Math.round(message.opacity * 100);
-                    document.getElementById('opacity-slider').value = opacityPercent;
-                    document.getElementById('opacity-value').textContent = `${opacityPercent}%`;
-                    break;
-                case 'clearCanvas':
-                    enhancedDrawingEngine.clear();
-                    break;
-                case 'setTool':
-                    enhancedDrawingEngine.setTool(message.tool);
-                    // Update UI
-                    document.querySelectorAll('.tool-button').forEach(b => b.classList.remove('active'));
-                    const toolButton = document.querySelector(`[data-tool="${message.tool}"]`);
-                    if (toolButton) toolButton.classList.add('active');
-                    break;
-                case 'addColorToSwatch':
-                    enhancedDrawingEngine.colorSystem.addToSwatch(message.color, message.name, message.usage);
-                    enhancedDrawingEngine.updateSwatches();
-                    break;
-                case 'importDesignData':
-                    enhancedDrawingEngine.importDesignData(message.data);
-                    break;
-                case 'undo':
-                    enhancedDrawingEngine.undo();
-                    break;
-                case 'redo':
-                    enhancedDrawingEngine.redo();
-                    break;
-                case 'addLayer':
-                    enhancedDrawingEngine.addLayer(message.name);
-                    break;
-                case 'deleteLayer':
-                    enhancedDrawingEngine.deleteCurrentLayer();
-                    break;
-            }
-        });
-        
-        // Initialize WebSocket connection to sync server
-        function initializeSyncServerConnection() {
-            const wsUrl = 'ws://localhost:3001';
-            
+        function sendMessage(message) {
             try {
-                window.syncServerWS = new WebSocket(wsUrl);
-                
-                window.syncServerWS.onopen = function(event) {
-                    console.log('🔌 Connected to VSS Sync Server');
-                    
-                    // Send initial connection message
-                    window.syncServerWS.send(JSON.stringify({
-                        type: 'CLIENT_CONNECTED',
-                        payload: {
-                            clientType: 'webview',
-                            capabilities: ['canvas-sync', 'drawing-tools']
-                        }
-                    }));
-                };
-                
-                window.syncServerWS.onmessage = function(event) {
-                    try {
-                        const message = JSON.parse(event.data);
-                        handleSyncServerMessage(message);
-                    } catch (error) {
-                        console.error('Error parsing sync server message:', error);
-                    }
-                };
-                
-                window.syncServerWS.onclose = function(event) {
-                    console.log('🔌 Disconnected from VSS Sync Server');
-                    
-                    // Attempt to reconnect after 3 seconds
-                    setTimeout(() => {
-                        console.log('🔄 Attempting to reconnect to sync server...');
-                        initializeSyncServerConnection();
-                    }, 3000);
-                };
-                
-                window.syncServerWS.onerror = function(error) {
-                    console.error('WebSocket error:', error);
-                };
-                
+                vscode.postMessage(message);
             } catch (error) {
-                console.error('Failed to connect to sync server:', error);
-                
-                // Retry connection after 5 seconds
-                setTimeout(() => {
-                    initializeSyncServerConnection();
-                }, 5000);
+                console.error('Error sending message to extension:', error);
+                updateStatus('Communication error with extension');
             }
         }
         
-        // Show visual feedback for sync operations
-        function showSyncFeedback(syncType, status) {
-            // Create or update sync feedback element
-            let feedbackEl = document.getElementById('sync-feedback');
-            if (!feedbackEl) {
-                feedbackEl = document.createElement('div');
-                feedbackEl.id = 'sync-feedback';
-                feedbackEl.style.cssText = `
-                    position: fixed;
-                    top: 10px;
-                    right: 220px;
-                    background: rgba(0, 0, 0, 0.8);
-                    color: white;
-                    padding: 8px 12px;
-                    border-radius: 4px;
-                    font-size: 12px;
-                    z-index: 1000;
-                    transition: opacity 0.3s ease;
-                `;
-                document.body.appendChild(feedbackEl);
-            }
+        function selectTool(tool) {
+            currentTool = tool;
             
-            // Set status color
-            const statusColors = {
-                success: '#28a745',
-                info: '#007bff',
-                warning: '#ffc107',
-                error: '#dc3545'
-            };
+            // Update button states
+            document.querySelectorAll('.tool-button[data-tool]').forEach(button => {
+                button.classList.remove('active');
+            });
+            document.querySelector(`[data-tool="${tool}"]`).classList.add('active');
             
-            feedbackEl.style.borderLeft = `4px solid ${statusColors[status] || statusColors.info}`;
-            feedbackEl.textContent = `🔄 ${syncType}`;
-            feedbackEl.style.opacity = '1';
+            // Update cursor
+            canvas.style.cursor = tool === 'eraser' ? 'grab' : 'crosshair';
             
-            // Auto-hide after 3 seconds
-            setTimeout(() => {
-                feedbackEl.style.opacity = '0';
-            }, 3000);
+            updateStatus(`Selected tool: ${tool}`);
+            
+            // Notify extension of tool change
+            sendMessage({
+                command: 'toolChanged',
+                data: { tool: tool }
+            });
         }
-
-        // Handle messages from sync server
-        function handleSyncServerMessage(message) {
-            const { type, payload } = message;
-            
-            switch (type) {
-                case 'SERVER_CONNECTED':
-                    console.log('✅ Sync server connection established');
-                    break;
-                    
-                case 'CANVAS_UPDATED_FROM_CSS':
-                    // Handle CSS → Canvas sync (part of VS Code → Canvas flow)
-                    if (payload.canvasData && enhancedDrawingEngine) {
-                        enhancedDrawingEngine.importDesignData(payload.canvasData);
-                        console.log('🎨 Canvas updated from CSS changes');
-                        
-                        // Show visual feedback for sync
-                        showSyncFeedback('VS Code → Canvas', 'success');
-                    }
-                    break;
-                    
-                case 'CSS_FILE_CHANGED':
-                    // Handle VS Code editor CSS file changes
-                    if (payload.syncFlow === 'vscode-to-canvas-to-liveapp') {
-                        console.log('📝 CSS file changed in VS Code:', payload.filePath);
-                        showSyncFeedback('VS Code → Canvas → Live App', 'info');
-                    }
-                    break;
-                    
-                case 'JS_FILE_CHANGED':
-                    // Handle VS Code editor JavaScript file changes
-                    if (payload.syncFlow === 'vscode-to-liveapp') {
-                        console.log('⚡ JS file changed in VS Code:', payload.filePath);
-                        showSyncFeedback('VS Code → Live App', 'info');
-                    }
-                    break;
-                    
-                case 'DEVTOOLS_CONNECTED':
-                    console.log('🔧 Chrome DevTools connected on port:', payload.port);
-                    showSyncFeedback('DevTools Connected', 'success');
-                    break;
-                    
-                case 'DEVTOOLS_CSS_UPDATED':
-                    // Handle DevTools → Code → Canvas sync
-                    if (payload.syncFlow === 'devtools-to-code-to-canvas') {
-                        console.log('🔧 CSS updated from DevTools:', payload.filePath);
-                        showSyncFeedback('DevTools → Code → Canvas', 'success');
-                    }
-                    break;
-                    
-                case 'CANVAS_UPDATED_FROM_DEVTOOLS':
-                    // Handle DevTools → Canvas sync
-                    if (payload.canvasData && enhancedDrawingEngine) {
-                        enhancedDrawingEngine.importDesignData(payload.canvasData);
-                        console.log('🔧 Canvas updated from DevTools changes');
-                        showSyncFeedback('DevTools → Canvas', 'success');
-                    }
-                    break;
-                    
-                case 'DEVTOOLS_INLINE_STYLE_CHANGED':
-                    // Handle DevTools inline style changes
-                    console.log('🔧 Inline styles changed in DevTools');
-                    showSyncFeedback('DevTools → Canvas', 'info');
-                    break;
-                    
-                case 'REACT_PROPS_UPDATED':
-                    // Handle React DevTools props changes
-                    if (payload.syncFlow === 'react-devtools-to-code-to-canvas') {
-                        console.log('⚛️ React props updated from DevTools:', payload.componentName);
-                        showSyncFeedback('React DevTools → Code → Canvas', 'success');
-                    }
-                    break;
-                    
-                case 'CANVAS_UPDATED_FROM_REACT_PROPS':
-                    // Handle React props → Canvas sync
-                    if (payload.canvasData && enhancedDrawingEngine) {
-                        enhancedDrawingEngine.importDesignData(payload.canvasData);
-                        console.log('⚛️ Canvas updated from React props changes');
-                        showSyncFeedback('React DevTools → Canvas', 'success');
-                    }
-                    break;
-                    
-                case 'REDUX_ACTION_SYNCED':
-                    // Handle Redux DevTools actions
-                    console.log('🔄 Redux action synced:', payload.action.type);
-                    showSyncFeedback('Redux DevTools → Canvas', 'info');
-                    break;
-                    
-                case 'CSS_GENERATED_FROM_CANVAS':
-                    console.log('📝 CSS generated from canvas changes:', payload.cssPath);
-                    break;
-                    
-                case 'DESIGN_DATA_UPDATED':
-                    // Handle external design data updates
-                    if (payload.designData && window.canvasState) {
-                        window.canvasState.importDesignData(payload.designData);
-                        console.log('📄 Design data updated externally');
-                    }
-                    break;
-                    
-                case 'ERROR':
-                    console.error('Sync server error:', payload.message);
-                    break;
-                    
-                default:
-                    console.log('Unknown sync server message:', type);
-            }
-        }
-
-        console.log('VSS Drawing Canvas with Pointer Events API initialized');
-        console.log('Pressure sensitivity support will be detected on first input');
         
-        // Connect to sync server after a short delay to ensure canvas is ready
-        setTimeout(() => {
-            initializeSyncServerConnection();
-        }, 1000);
+        function startDrawing(e) {
+            isDrawing = true;
+            [lastX, lastY] = getMousePos(e);
+            
+            // Start new path
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            
+            sendMessage({
+                command: 'drawingStarted',
+                data: { 
+                    tool: currentTool,
+                    x: lastX, 
+                    y: lastY 
+                }
+            });
+        }
+        
+        function draw(e) {
+            if (!isDrawing) return;
+            
+            const [currentX, currentY] = getMousePos(e);
+            
+            if (currentTool === 'pen') {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 2;
+            } else if (currentTool === 'eraser') {
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.lineWidth = 10;
+            }
+            
+            ctx.lineTo(currentX, currentY);
+            ctx.stroke();
+            
+            [lastX, lastY] = [currentX, currentY];
+            
+            // Send drawing data to extension (throttled)
+            if (Math.random() < 0.1) { // Only send 10% of drawing events to avoid spam
+                sendMessage({
+                    command: 'drawing',
+                    data: {
+                        tool: currentTool,
+                        x: currentX,
+                        y: currentY,
+                        lastX: lastX,
+                        lastY: lastY
+                    }
+                });
+            }
+        }
+        
+        function stopDrawing() {
+            if (!isDrawing) return;
+            
+            isDrawing = false;
+            ctx.beginPath(); // Reset path
+            
+            sendMessage({
+                command: 'drawingEnded',
+                data: { tool: currentTool }
+            });
+        }
+        
+        function handleTouch(e) {
+            e.preventDefault();
+            
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : 
+                                            e.type === 'touchmove' ? 'mousemove' : 'mouseup', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            
+            canvas.dispatchEvent(mouseEvent);
+        }
+        
+        function getMousePos(e) {
+            const rect = canvas.getBoundingClientRect();
+            return [
+                e.clientX - rect.left,
+                e.clientY - rect.top
+            ];
+        }
+        
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            updateStatus('Canvas cleared');
+            
+            sendMessage({
+                command: 'canvasCleared',
+                data: {}
+            });
+        }
+        
+        function updateStatus(message) {
+            const statusElement = document.getElementById('status');
+            const statusText = statusElement.querySelector('span:first-child');
+            statusText.textContent = `VSS Drawing Canvas - ${message}`;
+        }
+        
+        function updateConnectionStatus(connected) {
+            const statusElement = document.getElementById('connection-status');
+            statusElement.textContent = connected ? 'Connected' : 'Disconnected';
+            statusElement.className = `connection-status ${connected ? 'connected' : 'disconnected'}`;
+        }
+        
+        // Error handling
+        window.addEventListener('error', function(e) {
+            updateStatus('Error: ' + e.message);
+            sendMessage({
+                command: 'error',
+                data: {
+                    message: e.message,
+                    filename: e.filename,
+                    lineno: e.lineno
+                }
+            });
+        });
+        
+        // Handle unhandled promise rejections
+        window.addEventListener('unhandledrejection', function(e) {
+            updateStatus('Promise error: ' + e.reason);
+            sendMessage({
+                command: 'error',
+                data: {
+                    message: 'Unhandled promise rejection: ' + e.reason
+                }
+            });
+        });
     </script>
 </body>
 </html>

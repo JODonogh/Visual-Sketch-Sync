@@ -2,106 +2,75 @@
 
 ## Overview
 
-The VSS (Visual Sketch Sync) system is a **three-way synchronization platform** that keeps a drawing canvas, VS Code editor, and live Chrome application in perfect sync. The system consists of:
+This design focuses on fixing the immediate issues preventing the VS Code extension from functioning:
 
-1. **VS Code Extension**: Provides a pressure-sensitive drawing canvas with professional design tools
-2. **Live Chrome Application**: Running React app with Redux DevTools and React DevTools integration
-3. **Three-Way Sync Server**: Coordinates changes between all three environments
-4. **Cross-Platform Support**: Works on desktop, iPad, and GitHub Codespaces
+1. **Command Registration Fix**: Implement proper command registration in the extension.ts activate function
+2. **Extension Installation**: Provide working installation methods without cyclic copy errors  
+3. **Basic Webview Setup**: Create a minimal working drawing canvas webview
+4. **Error Handling**: Address SQLite warnings and provide graceful error handling
 
-**The Three Sync Points**:
-- **Drawing Canvas**: Visual design with tablets/stylus → generates CSS/components
-- **VS Code Editor**: Code editing → updates canvas and live app
-- **Chrome Application**: Live app with DevTools → updates code and canvas
-
-**Bidirectional Flow**: Changes in any environment instantly update the other two
+**Core Problem**: The extension.ts file contains only placeholder functions, so none of the commands declared in package.json are actually registered. This causes the "command not found" error when trying to run "VSS: Open Drawing Canvas".
 
 ## Architecture
 
-### Three-Way Sync Architecture
+### Extension Fix Architecture
 
 ```mermaid
 graph TB
-    subgraph "VS Code Environment"
-        subgraph "Editor Pane"
-            ReactFiles[React/CSS Files]
-            ConfigFiles[Config Files]
-        end
-        
-        subgraph "Drawing Canvas"
-            DrawingTools[Drawing Tools]
-            ColorPalette[Color System]
-            AlignmentGuides[CRAP Helpers]
-        end
+    subgraph "VS Code Extension"
+        ExtensionTS[extension.ts - Fixed Implementation]
+        PackageJSON[package.json - Command Declarations]
+        WebviewProvider[Webview Provider]
+        CommandHandlers[Command Handlers]
     end
     
-    subgraph "Chrome Browser"
-        subgraph "Live Application"
-            ReactApp[Running React App]
-            ReactDevTools[React DevTools]
-            ReduxDevTools[Redux DevTools]
-        end
-        
-        subgraph "Browser DevTools"
-            ElementsPanel[Elements Panel]
-            ConsolePanel[Console]
-            NetworkPanel[Network]
-        end
+    subgraph "Installation Methods"
+        F5Debug[F5 Development Mode]
+        VSIXPackage[VSIX Package Installation]
+        DirectInstall[Direct Extension Installation]
     end
     
-    subgraph "Three-Way Sync Server"
-        SyncCoordinator[Sync Coordinator]
-        FileWatcher[File System Watcher]
-        CodeGenerator[Code Generator]
-        LiveReload[Live Reload Server]
+    subgraph "Webview Components"
+        HTMLCanvas[HTML Canvas Element]
+        BasicDrawing[Basic Drawing Tools]
+        ErrorHandling[Error Boundaries]
     end
     
-    %% Three-way connections
-    ReactFiles <--> SyncCoordinator
-    DrawingTools <--> SyncCoordinator
-    ReactApp <--> SyncCoordinator
+    ExtensionTS --> CommandHandlers
+    PackageJSON --> ExtensionTS
+    CommandHandlers --> WebviewProvider
+    WebviewProvider --> HTMLCanvas
     
-    %% DevTools integration
-    ReactDevTools <--> SyncCoordinator
-    ReduxDevTools <--> SyncCoordinator
-    ElementsPanel <--> SyncCoordinator
-    
-    %% File system monitoring
-    FileWatcher --> SyncCoordinator
-    SyncCoordinator --> CodeGenerator
-    SyncCoordinator --> LiveReload
+    F5Debug --> ExtensionTS
+    VSIXPackage --> ExtensionTS
+    DirectInstall --> ExtensionTS
 ```
 
 ### System Components Breakdown
 
-**1. VS Code Extension (`extension.js`) - Maximizes Built-in APIs**
-- Uses VS Code Webview API for drawing panel
-- Uses VS Code File System Watcher for file monitoring  
-- Uses VS Code Debug API for Chrome DevTools connection (existing!)
-- Uses VS Code Live Server extension for hot reload (existing!)
-- Uses VS Code Task API for running sync processes (existing!)
-- Uses VS Code Terminal API for server management (existing!)
-- **Minimal Custom**: Basic drawing canvas setup in webview
+**1. Fixed Extension Entry Point (`src/extension.ts`)**
+- Implement proper activate() function that registers all commands from package.json
+- Create webview provider for the drawing canvas
+- Add error handling and user feedback for command execution
+- Handle extension lifecycle (activate/deactivate) properly
 
-**2. Design Panel Webview - Leverages Web Standards**
-- Uses HTML5 Canvas with **Pointer Events API** (web standard for tablets)
-- Uses **CSS Color API** for color management (web standard)
-- Uses **Web Components** for drawing tools (web standard)
-- Uses **CSS Grid/Flexbox** for alignment guides (web standard)
-- Uses VS Code Webview **postMessage API** for communication (existing!)
-- **Minimal Custom**: Drawing tool logic and canvas state management
+**2. Webview Provider Implementation**
+- Create DrawingCanvasProvider class that implements WebviewViewProvider
+- Set up HTML template with basic canvas element
+- Implement postMessage communication between webview and extension
+- Add basic drawing functionality to verify the webview works
 
-**3. Background Sync Server (`scripts/kiro-sync-server.js`)**
-- Runs as separate Node.js process
-- Watches file system for changes
-- Handles WebSocket communication with webview
-- Performs AST manipulation for code updates
+**3. Installation and Packaging System**
+- Fix cyclic copy issues by using proper VS Code extension packaging
+- Implement vsce (Visual Studio Code Extension) packaging
+- Provide multiple installation methods (F5 debug, VSIX install, marketplace)
+- Add installation validation and troubleshooting
 
-**4. Code Generation System**
-- CSS generator: Converts drawn shapes to CSS classes
-- Design token generator: Creates CSS custom properties from color palette
-- Component template generator: Creates React/HTML components from complex designs
-- Asset exporter: Exports drawings as SVG/PNG for use in projects
+**4. Error Handling and User Experience**
+- Handle SQLite experimental warnings gracefully
+- Provide clear error messages when commands fail
+- Add user feedback for successful operations
+- Implement fallback behavior when webview fails to load
 
 ### What VS Code Provides vs What We Build
 
@@ -223,92 +192,94 @@ my-project/
 
 ## Components and Interfaces
 
-### 1. VS Code Extension (extension.js)
+### 1. Extension Entry Point (src/extension.ts)
 
-**Purpose**: Main extension entry point that manages the drawing canvas and cross-platform input
+**Purpose**: Fix the command registration and webview setup
 
 **Key Responsibilities**:
-- Register drawing canvas webview and commands
-- Detect and configure tablet/stylus input devices
-- Handle cross-platform compatibility (desktop, iPad, Codespaces)
-- Manage drawing canvas lifecycle and settings
+- Register all commands declared in package.json
+- Create and register webview provider
+- Handle command execution with proper error handling
+- Manage extension activation and deactivation
 
 **Interface**:
-```javascript
-function activate(context) {
-  // Register drawing canvas webview provider
-  // Detect input devices (Wacom, Apple Pencil)
-  // Start sync server process
-  // Set up cross-platform input handling
+```typescript
+export function activate(context: vscode.ExtensionContext): void {
+  // Register all VSS commands
+  registerCommands(context);
+  
+  // Register webview provider
+  const provider = new DrawingCanvasProvider(context.extensionUri);
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider('vss.drawingCanvas', provider)
+  );
 }
 
-class DrawingCanvasProvider {
-  resolveWebviewView(webviewView, context, token)
-  setupInputDevices()
-  handlePressureSensitivity()
+function registerCommands(context: vscode.ExtensionContext): void {
+  // Register vss.openDrawingCanvas command
+  // Register other VSS commands with proper handlers
+}
+
+class DrawingCanvasProvider implements vscode.WebviewViewProvider {
+  resolveWebviewView(webviewView: vscode.WebviewView): void
+  private getHtmlForWebview(webview: vscode.Webview): string
 }
 ```
 
-### 2. Drawing Engine (webview/drawing-engine.js)
+### 2. Webview HTML Template (webview/index.html)
 
-**Purpose**: Core drawing functionality with pressure sensitivity and professional tools
+**Purpose**: Minimal working canvas interface for testing
 
 **Key Responsibilities**:
-- WebGL/Canvas2D rendering for smooth drawing
-- Pressure-sensitive brush and pen tools
-- Shape tools (rectangles, circles, lines)
-- Layer management and undo/redo system
+- Provide HTML5 canvas element for drawing
+- Basic drawing functionality to verify webview works
+- Message passing with extension
+- Error handling and user feedback
 
 **Interface**:
-```javascript
-class DrawingEngine {
-  constructor(canvas, options)
-  
-  // Drawing tools
-  setBrushTool(size, opacity, pressure)
-  setPenTool(size, color, pressure)
-  setShapeTool(type) // rectangle, circle, line
-  
-  // Input handling
-  handlePointerInput(event) // Works with mouse, Wacom, Apple Pencil
-  handlePressure(pressure) // 0.0 to 1.0
-  
-  // Canvas operations
-  addLayer()
-  undo()
-  redo()
-  exportToSVG()
-}
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>VSS Drawing Canvas</title>
+</head>
+<body>
+    <div id="canvas-container">
+        <canvas id="drawing-canvas" width="800" height="600"></canvas>
+        <div id="status">Canvas Ready</div>
+    </div>
+    <script>
+        // Basic canvas setup and drawing
+        // Message passing with VS Code extension
+        // Error handling
+    </script>
+</body>
+</html>
 ```
 
-### 3. Color System (webview/color-system.js)
+### 3. Installation and Packaging
 
-**Purpose**: Professional color management and palette tools
+**Purpose**: Provide working installation methods
 
 **Key Responsibilities**:
-- Color picker with HSB, RGB, HEX support
-- Swatch management and color harmony tools
-- Color accessibility checking (contrast ratios)
-- Design token generation from color choices
+- Package extension properly using vsce
+- Avoid cyclic copy errors in installation
+- Support multiple installation methods
+- Validate installation success
 
-**Interface**:
-```javascript
-class ColorSystem {
-  constructor()
-  
-  // Color selection
-  setColor(color) // HSB, RGB, or HEX
-  getColorHarmony(baseColor, type) // complementary, triadic, etc.
-  
-  // Palette management
-  addToSwatch(color)
-  createPalette(colors)
-  generateDesignTokens() // CSS custom properties
-  
-  // Accessibility
-  checkContrast(foreground, background)
-  suggestAccessibleColors(baseColor)
-}
+**Methods**:
+```bash
+# Method 1: Development mode (F5)
+# Should work after fixing extension.ts
+
+# Method 2: VSIX packaging
+npm install -g vsce
+vsce package
+code --install-extension visual-sketch-sync-0.1.0.vsix
+
+# Method 3: Direct installation (fixed)
+# Copy to extensions directory without cyclic references
 ```
 
 ### 4. Alignment Guides (webview/alignment-guides.js)
@@ -490,59 +461,29 @@ class ASTEngine {
 
 ## Data Models
 
-### Design Data Structure (design-data.json)
+### Command Registration Structure
 
-```json
-{
-  "canvas": {
-    "width": 1920,
-    "height": 1080,
-    "backgroundColor": "#ffffff",
-    "grid": { "size": 8, "visible": true }
-  },
-  "layers": [
-    {
-      "id": "layer_001",
-      "name": "Background",
-      "visible": true,
-      "locked": false,
-      "elements": []
-    }
-  ],
-  "elements": [
-    {
-      "id": "shape_001",
-      "type": "rectangle",
-      "position": { "x": 100, "y": 200 },
-      "size": { "width": 200, "height": 100 },
-      "style": {
-        "fill": "#007bff",
-        "stroke": "#003d7a",
-        "strokeWidth": 2,
-        "borderRadius": 8
-      },
-      "layerId": "layer_001"
-    },
-    {
-      "id": "drawing_001",
-      "type": "freehand",
-      "path": "M10,10 L20,20 L30,15 Z",
-      "style": {
-        "stroke": "#333333",
-        "strokeWidth": 3,
-        "pressure": [0.5, 0.8, 0.6]
-      },
-      "layerId": "layer_001"
-    }
-  ],
-  "colorPalette": [
-    { "name": "Primary", "color": "#007bff", "usage": "buttons" },
-    { "name": "Secondary", "color": "#6c757d", "usage": "text" }
-  ],
-  "designTokens": {
-    "spacing": { "xs": 4, "sm": 8, "md": 16, "lg": 24 },
-    "colors": { "primary": "#007bff", "secondary": "#6c757d" }
-  }
+```typescript
+// Commands to register in activate function
+interface VSSCommands {
+  'vss.openDrawingCanvas': () => void;
+  'vss.startSyncServer': () => void;
+  'vss.stopSyncServer': () => void;
+  'vss.exportDesign': () => void;
+  // ... other commands from package.json
+}
+
+// Webview message structure
+interface WebviewMessage {
+  command: string;
+  data?: any;
+}
+
+// Extension context structure
+interface ExtensionState {
+  webviewProvider?: DrawingCanvasProvider;
+  syncServerProcess?: any;
+  isActive: boolean;
 }
 ```
 
@@ -605,37 +546,37 @@ class ASTEngine {
 
 ## Error Handling
 
-### Connection Management
-- **WebSocket Disconnection**: Automatic reconnection with exponential backoff
-- **Server Unavailable**: Graceful degradation to read-only mode with user notification
-- **File Lock Conflicts**: Queue updates and retry with conflict resolution
+### Command Registration Errors
+- **Command Not Found**: Ensure all package.json commands are registered in activate()
+- **Activation Failures**: Provide clear error messages and fallback behavior
+- **Webview Creation Errors**: Handle webview provider registration failures gracefully
 
-### File System Errors
-- **Permission Issues**: Clear error messages with suggested solutions
-- **File Not Found**: Automatic file creation with default structure
-- **Parse Errors**: Syntax error highlighting with recovery suggestions
+### Installation Errors
+- **Cyclic Copy Prevention**: Use proper packaging methods to avoid directory conflicts
+- **VSIX Installation Issues**: Validate package structure and dependencies
+- **Permission Problems**: Provide clear instructions for extension installation
 
 ### Runtime Errors
-- **Invalid Component Props**: Type validation with fallback to defaults
-- **Missing Components**: Error boundaries with component replacement
-- **Schema Validation**: Prop type checking with developer warnings
+- **SQLite Warnings**: Handle experimental feature warnings without affecting functionality
+- **Webview Communication**: Implement proper message passing error handling
+- **Extension Lifecycle**: Ensure proper cleanup in deactivate() function
 
 ## Testing Strategy
 
-### Unit Testing
-- **AST Engine**: Test JSON parsing, modification, and generation
-- **Component Registry**: Test registration, retrieval, and schema validation
-- **WebSocket Communication**: Mock WebSocket for event handling tests
+### Extension Testing
+- **Command Registration**: Verify all commands from package.json are properly registered
+- **Webview Provider**: Test webview creation and message passing
+- **Installation Methods**: Test F5 debug mode, VSIX installation, and direct installation
 
 ### Integration Testing  
-- **End-to-End Sync**: Test complete code→design→code cycle
-- **File Watcher Integration**: Test file change detection and notification
-- **React Context Integration**: Test provider and hook functionality
+- **VS Code API Integration**: Test extension activation and command execution
+- **Webview Communication**: Test postMessage between extension and webview
+- **Error Handling**: Test graceful handling of various error conditions
 
-### Performance Testing
-- **Large File Handling**: Test with complex DesignData.json files
-- **Concurrent Updates**: Test multiple simultaneous property changes
-- **Memory Usage**: Monitor WebSocket connection and file watcher memory consumption
+### User Acceptance Testing
+- **Command Palette**: Verify "VSS: Open Drawing Canvas" appears and works
+- **Installation Process**: Test all installation methods work without errors
+- **Basic Functionality**: Ensure webview opens and displays canvas
 
 ## Security Considerations
 

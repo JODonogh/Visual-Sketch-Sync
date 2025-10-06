@@ -53,13 +53,13 @@ export class IntegrationTestRunner {
         await this.runTest('Extension should register all required commands', async () => {
             const commands = await vscode.commands.getCommands();
             const vssCommands = [
-                'vds.openDrawingCanvas',
-                'vds.startSyncServer',
-                'vds.stopSyncServer',
-                'vds.exportDesign'
+                'vss.openDrawingCanvas',
+                'vss.startSyncServer',
+                'vss.stopSyncServer',
+                'vss.exportDesign'
             ];
 
-            for (const command of vdsCommands) {
+            for (const command of vssCommands) {
                 assert.ok(commands.includes(command), `Command ${command} should be registered`);
             }
         });

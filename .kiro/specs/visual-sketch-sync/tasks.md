@@ -1,203 +1,111 @@
 # Implementation Plan
 
-- [x] 1. Set up VS Code extension foundation and project structure
+- [x] 1. Fix VS Code extension command registration and activation
 
-  - [x] 1.1 Create VS Code extension manifest and basic structure
+  - [x] 1.1 Implement proper extension.ts activate function
 
-    - Create package.json with VS Code extension configuration and required APIs
-    - Set up extension activation events and contribution points
-    - Configure webview, debug, filesystem, and command APIs
-    - Create basic TypeScript configuration for extension development
-    - _Requirements: 1.1, 1.4_
-
-  - [x] 1.2 Initialize extension entry point and command registration
-
-    - Create extension.js with activate() function and extension lifecycle
-    - Register VS Code commands for drawing canvas and sync operations
-    - Set up extension context and state management
-    - Configure cross-platform compatibility (desktop, iPad, Codespaces)
-    - _Requirements: 1.1, 1.4_
-
-- [x] 2. Implement drawing canvas webview with tablet support
-
-  - [x] 2.1 Create HTML5 Canvas webview with Pointer Events API
-
-    - Set up webview HTML template with canvas element and drawing interface
-    - Implement Pointer Events API for cross-platform input (mouse, touch, stylus)
-
-    - Add pressure sensitivity support for Wacom tablets and Apple Pencil
-    - Configure canvas rendering context and basic drawing setup
-    - _Requirements: 2.1, 2.2, 2.3_
-
-  - [x] 2.2 Implement professional drawing tools and color system
-
-    - Create pressure-sensitive brush and pen tools with size/opacity control
-    - Implement shape tools (rectangle, circle, line) with drag-to-draw functionality
-    - Add professional color picker with HSB, RGB, HEX support and color harmony tools
-    - Create swatch management and color accessibility checking (contrast ratios)
-
-    - _Requirements: 2.1, 2.2, 4.1_
-
-  - [x] 2.3 Add canvas state management and layer system
-
-    - Implement canvas state serialization to design-data.json format
-    - Create undo/redo stack for drawing operations with history management
-    - Add layer management system with visibility and locking controls
-    - Set up alignment guides and CRAP design principle helpers
-    - _Requirements: 2.2, 4.2, 4.3_
-
-- [x] 3. Set up three-way sync server and coordination system
-
-  - [x] 3.1 Create background sync server with WebSocket support
-
-    - Create scripts/vds-sync-server.js as separate Node.js process
-    - Implement WebSocket server for real-time communication with webview
-    - Set up file system watcher using chokidar for monitoring code changes
-    - Add process management and lifecycle handling from VS Code extension
-    - _Requirements: 3.1, 3.2, 5.1_
-
-  - [x] 3.2 Implement VS Code API integrations for file and debug systems
-
-    - Use VS Code File System Watcher API for monitoring CSS/JS file changes
-    - Integrate with VS Code Debug API for Chrome DevTools Protocol connection
-    - Set up VS Code Live Server extension integration for hot reload
-    - Configure VS Code Task API for managing sync server processes
-    - _Requirements: 1.2, 3.1, 3.2, 5.1_
-
-  - [x] 3.3 Add Chrome DevTools integration and DOM change capture
-
-    - Use VS Code's existing Chrome debugger for DevTools Protocol access
-    - Implement DOM change listeners for Elements panel modifications
-    - Capture style changes made in Chrome DevTools and React/Redux DevTools
-    - Set up bidirectional communication between Chrome and VS Code extension
-    - _Requirements: 3.2, 5.2, 5.3_
-
-- [x] 4. Create code generation and AST manipulation system
-
-  - [x] 4.1 Implement canvas-to-CSS conversion engine
-
-    - Create shape-to-CSS class generators (rectangles → button styles, etc.)
-    - Implement color palette to CSS custom properties conversion
-    - Add layout analysis for flexbox/grid generation from element alignment
-    - Generate design tokens (spacing, colors, typography) from visual designs
-    - _Requirements: 2.4, 4.1, 4.2, 5.1_
-
-  - [x] 4.2 Add CSS-to-canvas reverse conversion system
-
-    - Parse CSS files to extract visual properties and convert to canvas shapes
-    - Update drawing canvas when CSS files change via file system watcher
-    - Implement style-to-shape mapping (CSS classes → visual elements)
-    - Handle complex CSS properties and translate to visual representations
-
-    - _Requirements: 2.4, 5.1, 5.2_
-
-  - [x] 4.3 Create AST manipulation for safe code updates
-
-    - Use @babel/parser and recast for format-preserving code generation
-    - Implement safe CSS and JavaScript file modification without breaking formatting
-    - Add component template generation (React/HTML components from designs)
-    - Create design-data.json management with nested object updates
-    - _Requirements: 3.3, 3.4, 4.3_
-
-- [x] 5. Implement three-way synchronization flows
-
-  - [x] 5.1 Create drawing canvas → code → live app sync flow
-
-    - Coordinate changes from canvas to CSS file updates via sync server
-    - Trigger VS Code file updates and Live Server hot reload to Chrome
-    - Update React/Redux DevTools to reflect new component states
-    - Handle real-time propagation of visual changes to running application
-    - _Requirements: 5.1, 5.2, 5.3_
-
-  - [x] 5.2 Add VS Code editor → canvas → live app sync flow
-
-    - Detect code changes via VS Code File System Watcher
-    - Update drawing canvas visual representation when CSS/JS files change
-    - Propagate code changes to live Chrome application via hot reload
-    - Sync React component props and Redux state with visual interface
-    - _Requirements: 5.1, 5.2, 5.3_
-
-  - [x] 5.3 Implement Chrome DevTools → code → canvas sync flow
-
-    - Capture style and DOM changes from Chrome DevTools Elements panel
-    - Update VS Code CSS files via sync server when DevTools changes occur
-    - Reflect DevTools changes in drawing canvas visual representation
-    - Handle React/Redux DevTools prop changes and component updates
-    - _Requirements: 5.2, 5.3, 5.4_
-
-- [x] 6. Add advanced features and cross-platform optimization
-
-  - [x] 6.1 Implement CRAP design principle helpers and professional tools
-
-    - Create visual grid overlay with configurable spacing and snap-to-grid
-    - Add alignment guides for element positioning and distribution
-    - Implement design consistency checking and layout suggestions
-    - Add typography tools and text element management
-    - _Requirements: 4.4, 2.2_
-
-  - [x] 6.2 Optimize for iPad, tablets, and GitHub Codespaces
-
-    - Test and optimize Pointer Events API for Apple Pencil and Wacom tablets
-    - Ensure webview works properly in VS Code web, mobile, and Codespaces
-    - Add touch gesture support for canvas navigation and tool selection
-    - Configure remote development and container-based sync server deployment
-    - _Requirements: 1.4, 2.1, 2.2_
-
-- [x] 7. Add project templates and automation
-
-  - [x] 7.1 Create setup automation and project configuration
-
-    - Generate VS Code workspace configuration automatically for VDS projects
-    - Create project templates with pre-configured sync server and dependencies
-    - Add setup wizard for first-time users with guided configuration
-    - Implement package.json modification for sync scripts and dependencies
+    - Replace placeholder extension.ts with proper TypeScript implementation
+    - Register all commands declared in package.json (vss.openDrawingCanvas, etc.)
+    - Set up extension context and proper lifecycle management
+    - Add error handling and user feedback for command execution
     - _Requirements: 1.1, 1.2, 1.3_
 
-  - [x] 7.2 Add export and asset generation capabilities
+  - [x] 1.2 Create webview provider for drawing canvas
 
-    - Export drawings as SVG/PNG for use in projects and documentation
-    - Generate complete component libraries from complex canvas designs
-    - Create design system exports (Figma tokens, Sketch libraries, etc.)
-    - Add batch export and automated asset pipeline integration
-    - _Requirements: 2.4, 4.1, 4.2_
+    - Implement DrawingCanvasProvider class that extends WebviewViewProvider
+    - Set up webview HTML template with basic canvas element
+    - Configure webview options and security settings
+    - Add postMessage communication between webview and extension
+    - _Requirements: 1.2, 1.3_
 
-- [x] 8. Add comprehensive testing and error handling
+- [x] 2. Fix extension installation and packaging issues
 
-  - [ ] 8.1 Write unit tests for core drawing and sync functionality
+  - [x] 2.1 Set up proper VSIX packaging system
 
-    - Test canvas drawing engine, pressure sensitivity, and tool functionality
-    - Test WebSocket communication and three-way sync coordination
-    - Test AST manipulation, code generation, and file system operations
-    - _Requirements: 2.1, 3.1, 4.1_
+    - Install and configure vsce (Visual Studio Code Extension) tool
+    - Create proper .vscodeignore file to exclude unnecessary files from package
+    - Generate valid .vsix package file for distribution
+    - Test VSIX installation process to ensure it works correctly
+    - _Requirements: 2.2, 2.3, 2.4_
 
-  - [x] 8.2 Add integration tests for VS Code API usage and Chrome integration
+  - [x] 2.2 Fix cyclic copy installation method
 
-    - Test VS Code webview communication and extension lifecycle
+    - Identify and resolve cyclic directory copy issues in manual installation
+    - Provide corrected installation instructions that avoid directory conflicts
+    - Create installation validation script to verify successful installation
+    - Document multiple working installation methods (F5, VSIX, manual)
+    - _Requirements: 2.1, 2.3, 2.4_
 
-    - Test file system watcher integration and Chrome DevTools Protocol
-    - Test cross-platform compatibility (desktop, iPad, Codespaces)
-    - _Requirements: 1.1, 1.2, 3.1, 3.2_
+- [x] 3. Create basic webview HTML and canvas functionality
 
-  - [x] 8.3 Implement comprehensive error handling and recovery
+  - [x] 3.1 Build minimal HTML template for webview
+
+    - Create webview/index.html with basic HTML5 canvas element
+    - Add minimal CSS styling for canvas container and status display
+    - Implement basic JavaScript for canvas initialization and drawing
+    - Set up message passing system between webview and VS Code extension
+
+    - _Requirements: 1.2, 1.3_
+
+  - [x] 3.2 Add basic drawing functionality for testing
+
+    - Implement simple mouse/touch drawing on canvas to verify functionality
+    - Add basic drawing tools (pen, eraser) for testing webview interaction
+    - Create status display to show canvas state and connection status
+    - Add error handling and user feedback for drawing operations
+    - _Requirements: 1.3, 1.4_
+
+- [x] 4. Add error handling and user experience improvements
+
+  - [x] 4.1 Handle SQLite experimental warnings gracefully
+
+    - Identify source of SQLite experimental warnings in extension
+    - Implement proper warning suppression or graceful handling
+    - Ensure warnings don't affect extension functionality
+    - Add user-friendly messaging if SQLite features are needed
+    - _Requirements: 2.5, 1.4_
+
+  - [x] 4.2 Implement comprehensive error handling
+
+    - Add try-catch blocks around command registration and execution
+    - Provide clear error messages when webview fails to load
+    - Handle extension activation failures with user feedback
+    - Add logging and diagnostic information for troubleshooting
+    - _Requirements: 1.4, 2.4_
+
+- [x] 5. Test and validate extension functionality
+
+  - [x] 5.1 Test command registration and execution
+
+    - Verify all commands from package.json appear in command palette
+    - Test "VSS: Open Drawing Canvas" command executes without errors
+    - Validate webview opens and displays canvas correctly
+    - Test command error handling and user feedback
+    - _Requirements: 1.1, 1.2, 1.3_
+
+  - [x] 5.2 Validate installation methods
+
+    - Test F5 development mode works properly in Extension Development Host
+    - Verify VSIX package installs correctly using code --install-extension
+    - Test manual installation method works without cyclic copy errors
+    - Validate extension appears in VS Code extensions list after installation
+    - _Requirements: 2.1, 2.2, 2.3, 2.4_
+
+- [x] 6. Create documentation and setup instructions
+
+  - [x] 6.1 Document working installation methods
+
+    - Create clear step-by-step installation guide for all methods
+    - Add troubleshooting section for common installation issues
+    - Document system requirements and dependencies
+    - Provide validation steps to confirm successful installation
+    - _Requirements: 2.1, 2.2, 2.3, 2.4_
+
+  - [x] 6.2 Add basic user guide for extension usage
 
 
-    - Add graceful degradation when Chrome is not connected or sync server fails
-    - Handle file permission errors, conflicts, and network connectivity issues
-    - Add user-friendly error messages, recovery suggestions, and diagnostic tools
-    - _Requirements: 5.3, 5.4_
-
-- [x] 9. Create documentation and examples
-
-  - [x] 9.1 Build comprehensive example projects and tutorials
-
-    - Create sample projects demonstrating three-way sync capabilities
-    - Add step-by-step tutorials for common design-to-code workflows
-    - Show integration with popular React frameworks and design systems
-    - _Requirements: 1.1, 2.4, 4.1_
-
-  - [x] 9.2 Write developer documentation and extension publishing
-
-    - Create user guide for three-way sync workflow and professional drawing tools
-    - Add developer documentation for extension APIs and customization
-    - Prepare VS Code Marketplace listing and extension packaging
-    - _Requirements: 1.1, 1.2, 4.1, 4.2_
+    - Document how to open and use the drawing canvas
+    - Explain available commands and their functionality
+    - Add screenshots showing successful extension operation
+    - Create quick start guide for new users
+    - _Requirements: 1.1, 1.2, 1.3, 1.4_
