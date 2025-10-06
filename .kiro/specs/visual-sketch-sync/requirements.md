@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This feature creates a visual design-to-code synchronization system that allows developers to build React applications with real-time bidirectional sync between a visual canvas and VS Code. The system uses a WebSocket-based architecture with AST manipulation to enable seamless design changes that automatically update source code, and code changes that instantly reflect in the visual interface.
+This feature creates a visual sketch-to-code synchronization system that allows developers to build React applications with real-time bidirectional sync between a visual canvas and VS Code. The system uses a WebSocket-based architecture with AST manipulation to enable seamless design changes that automatically update source code, and code changes that instantly reflect in the visual interface.
 
 ## Requirements
 
@@ -12,10 +12,10 @@ This feature creates a visual design-to-code synchronization system that allows 
 
 #### Acceptance Criteria
 
-1. WHEN initializing the project THEN Kiro SHALL modify package.json to add a "dev:sync" script that runs "node ./scripts/kiro-sync-server.js"
+1. WHEN initializing the project THEN Kiro SHALL modify package.json to add a "dev:sync" script that runs "node ./scripts/vss-sync-server.js"
 2. WHEN setting up the project THEN Kiro SHALL modify the start script to "concurrently \"npm run dev:ui\" \"npm run dev:sync\"" to run both UI and sync servers
 3. WHEN configuring dependencies THEN Kiro SHALL install concurrently, ws, chokidar, recast, and @babel/parser packages
-4. WHEN creating the project structure THEN Kiro SHALL generate a scripts/ directory containing kiro-sync-server.js
+4. WHEN creating the project structure THEN Kiro SHALL generate a scripts/ directory containing vss-sync-server.js
 
 ### Requirement 2: Code-Design Runtime Integration
 
@@ -23,9 +23,9 @@ This feature creates a visual design-to-code synchronization system that allows 
 
 #### Acceptance Criteria
 
-1. WHEN creating the runtime THEN Kiro SHALL generate a KiroProvider component that establishes WebSocket connection to the sync server
-2. WHEN managing design data THEN the KiroProvider SHALL fetch and manage Design Data from DesignData.json file
-3. WHEN accessing component data THEN Kiro SHALL provide a useKiroData() hook that allows components to fetch props based on their kiro-id
+1. WHEN creating the runtime THEN Kiro SHALL generate a VSSProvider component that establishes WebSocket connection to the sync server
+2. WHEN managing design data THEN the VSSProvider SHALL fetch and manage Design Data from DesignData.json file
+3. WHEN accessing component data THEN Kiro SHALL provide a useVSSData() hook that allows components to fetch props based on their vss-id
 4. WHEN registering components THEN Kiro SHALL generate a registerComponent utility that accepts a component and schema defining visually editable props
 5. WHEN initializing design data THEN Kiro SHALL create an initial DesignData.json file with basic page structure
 

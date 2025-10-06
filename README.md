@@ -1,6 +1,6 @@
-# VDS Design Canvas Extension
+# Visual Sketch Sync Extension
 
-Visual Design Sync - A VS Code extension that provides three-way synchronization between a drawing canvas, VS Code editor, and live Chrome application.
+Visual Sketch Sync - A VS Code extension that provides three-way synchronization between a drawing canvas, VS Code editor, and live Chrome application.
 
 ## Features
 
@@ -21,19 +21,19 @@ Visual Design Sync - A VS Code extension that provides three-way synchronization
 
 1. Install the extension from the VS Code Marketplace
 2. Open a project folder in VS Code
-3. Run the command "VDS: Open Drawing Canvas" to get started
+3. Run the command "VSS: Open Drawing Canvas" to get started
 
 ## Usage
 
 ### Opening the Drawing Canvas
 
 1. Open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
-2. Run "VDS: Open Drawing Canvas"
+2. Run "VSS: Open Drawing Canvas"
 3. The drawing canvas will open in a new panel
 
 ### Starting the Sync Server
 
-1. Run "VDS: Start Sync Server" from the Command Palette
+1. Run "VSS: Start Sync Server" from the Command Palette
 2. The sync server will start and enable three-way synchronization
 3. Open your application in Chrome to see live updates
 
@@ -41,11 +41,11 @@ Visual Design Sync - A VS Code extension that provides three-way synchronization
 
 The extension can be configured through VS Code settings:
 
-- `vds.canvas.width`: Default canvas width (default: 1920)
-- `vds.canvas.height`: Default canvas height (default: 1080)
-- `vds.tablet.pressureSensitivity`: Enable pressure sensitivity (default: true)
-- `vds.sync.autoStart`: Auto-start sync server (default: true)
-- `vds.sync.port`: Sync server WebSocket port (default: 3001)
+- `vss.canvas.width`: Default canvas width (default: 1920)
+- `vss.canvas.height`: Default canvas height (default: 1080)
+- `vss.tablet.pressureSensitivity`: Enable pressure sensitivity (default: true)
+- `vss.sync.autoStart`: Auto-start sync server (default: true)
+- `vss.sync.port`: Sync server WebSocket port (default: 3001)
 
 ## Development
 

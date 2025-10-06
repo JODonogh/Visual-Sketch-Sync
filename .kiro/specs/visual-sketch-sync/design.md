@@ -2,7 +2,7 @@
 
 ## Overview
 
-The VDS (Visual Design Sync) system is a **three-way synchronization platform** that keeps a drawing canvas, VS Code editor, and live Chrome application in perfect sync. The system consists of:
+The VSS (Visual Sketch Sync) system is a **three-way synchronization platform** that keeps a drawing canvas, VS Code editor, and live Chrome application in perfect sync. The system consists of:
 
 1. **VS Code Extension**: Provides a pressure-sensitive drawing canvas with professional design tools
 2. **Live Chrome Application**: Running React app with Redux DevTools and React DevTools integration
@@ -109,7 +109,7 @@ graph TB
 - **Webview API**: Host our drawing canvas in VS Code panel
 - **File System Watcher**: Monitor file changes (built-in `vscode.workspace.createFileSystemWatcher`)
 - **Extension Host**: Runtime environment for our extension
-- **Command Palette**: Register VDS commands (`vscode.commands.registerCommand`)
+- **Command Palette**: Register VSS commands (`vscode.commands.registerCommand`)
 - **Settings API**: Extension configuration (`vscode.workspace.getConfiguration`)
 - **Cross-platform**: VS Code handles desktop/web/mobile deployment
 
@@ -160,7 +160,7 @@ graph TB
 
 ### VS Code Extension Files (Published as extension)
 ```
-vds-design-canvas-extension/
+visual-sketch-sync-extension/
 ├── package.json              # Extension manifest with tablet support
 ├── extension.js              # Main extension entry point
 ├── webview/
@@ -172,7 +172,7 @@ vds-design-canvas-extension/
 │   ├── alignment-guides.js  # CRAP design helpers
 │   └── styles.css           # Canvas and UI styling
 └── templates/
-    ├── vds-sync-server.js   # Template for sync server
+    ├── vss-sync-server.js   # Template for sync server
     └── design-tokens.css    # CSS design token templates
 ```
 
@@ -181,7 +181,7 @@ vds-design-canvas-extension/
 my-project/
 ├── package.json              # Modified with sync scripts
 ├── scripts/
-│   └── vds-sync-server.js   # Generated sync server
+│   └── vss-sync-server.js   # Generated sync server
 ├── src/
 │   ├── design/
 │   │   ├── drawings/        # SVG/Canvas exports from drawings
@@ -355,7 +355,7 @@ class AlignmentGuides {
 
 **Interface**:
 ```javascript
-class VDSSyncCoordinator {
+class VSSSyncCoordinator {
   constructor(context) // VS Code extension context
   
   // Use existing VS Code APIs
@@ -383,7 +383,7 @@ class VDSSyncCoordinator {
 **Minimal Implementation**:
 ```javascript
 // Extends VS Code's existing Chrome debugger
-class VDSChromeIntegration {
+class VSSChromeIntegration {
   constructor(debugSession) // Use VS Code's debug session
   
   // Leverage existing debug protocol

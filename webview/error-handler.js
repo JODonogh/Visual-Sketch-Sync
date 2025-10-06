@@ -1,5 +1,5 @@
 /**
- * Client-side Error Handler for VDS Drawing Canvas
+ * Client-side Error Handler for VSS Drawing Canvas
  * 
  * Handles errors in the webview and communicates with the sync server
  */
@@ -575,7 +575,7 @@ class CanvasErrorHandler {
     if (!this.options.enableLogging) return;
     
     const { type, error, context, count } = errorInfo;
-    console.error(`[VDS Canvas Error] ${type} (${count}):`, error.message, {
+    console.error(`[VSS Canvas Error] ${type} (${count}):`, error.message, {
       error: error.stack,
       context
     });
@@ -588,7 +588,7 @@ class CanvasErrorHandler {
     if (!this.options.enableLogging) return;
     
     const timestamp = new Date().toISOString();
-    const logMessage = `[${timestamp}] [VDS Canvas] [${level.toUpperCase()}] ${message}`;
+    const logMessage = `[${timestamp}] [VSS Canvas] [${level.toUpperCase()}] ${message}`;
     
     switch (level) {
       case 'debug':

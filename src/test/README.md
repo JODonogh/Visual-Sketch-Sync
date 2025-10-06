@@ -1,6 +1,6 @@
-# VDS Integration Tests
+# VSS Integration Tests
 
-This directory contains comprehensive integration tests for the VDS (Visual Design Sync) extension, covering VS Code API usage, Chrome DevTools Protocol integration, and cross-platform compatibility.
+This directory contains comprehensive integration tests for the VSS (Visual Sketch Sync) extension, covering VS Code API usage, Chrome DevTools Protocol integration, and cross-platform compatibility.
 
 ## Test Structure
 

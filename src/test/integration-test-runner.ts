@@ -13,7 +13,7 @@ export class IntegrationTestRunner {
     private extensionContext: vscode.ExtensionContext | undefined;
 
     async runAllTests(): Promise<void> {
-        console.log('Starting VDS Integration Tests...');
+        console.log('Starting VSS Integration Tests...');
         
         try {
             await this.setupTestEnvironment();
@@ -31,9 +31,9 @@ export class IntegrationTestRunner {
 
     private async setupTestEnvironment(): Promise<void> {
         // Get extension context
-        const extension = vscode.extensions.getExtension('kiro.vds-design-canvas');
+        const extension = vscode.extensions.getExtension('kiro.visual-sketch-sync');
         if (!extension) {
-            throw new Error('VDS extension not found');
+            throw new Error('VSS extension not found');
         }
         
         if (!extension.isActive) {
@@ -45,14 +45,14 @@ export class IntegrationTestRunner {
 
     private async runExtensionLifecycleTests(): Promise<void> {
         await this.runTest('Extension should activate successfully', async () => {
-            const extension = vscode.extensions.getExtension('kiro.vds-design-canvas');
+            const extension = vscode.extensions.getExtension('kiro.visual-sketch-sync');
             assert.ok(extension, 'Extension should be found');
             assert.ok(extension.isActive, 'Extension should be active');
         });
 
         await this.runTest('Extension should register all required commands', async () => {
             const commands = await vscode.commands.getCommands();
-            const vdsCommands = [
+            const vssCommands = [
                 'vds.openDrawingCanvas',
                 'vds.startSyncServer',
                 'vds.stopSyncServer',

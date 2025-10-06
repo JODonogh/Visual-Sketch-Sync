@@ -1,10 +1,10 @@
-# Getting Started with Visual Design Sync
+# Getting Started with Visual Sketch Sync
 
-Welcome to VDS! This tutorial will guide you through setting up your first project and understanding the core three-way synchronization workflow.
+Welcome to VSS! This tutorial will guide you through setting up your first project and understanding the core three-way synchronization workflow.
 
 ## What You'll Learn
 
-- How to set up a VDS project from scratch
+- How to set up a VSS project from scratch
 - Understanding the three-way sync between canvas, code, and browser
 - Creating your first visual component
 - Basic drawing tools and their generated code output
@@ -13,29 +13,29 @@ Welcome to VDS! This tutorial will guide you through setting up your first proje
 
 - VS Code installed
 - Node.js 16+ installed
-- VDS extension installed from VS Code Marketplace
+- VSS extension installed from VS Code Marketplace
 
-## Step 1: Create Your First VDS Project
+## Step 1: Create Your First VSS Project
 
 ### 1.1 Initialize Project
 
 Open VS Code and create a new folder for your project:
 
 ```bash
-mkdir my-first-vds-project
-cd my-first-vds-project
+mkdir my-first-vss-project
+cd my-first-vss-project
 ```
 
-### 1.2 Set Up VDS
+### 1.2 Set Up VSS
 
 Open the Command Palette (`Cmd/Ctrl + Shift + P`) and run:
 
 ```
-VDS: Initialize Project
+VSS: Initialize Project
 ```
 
 This will:
-- Create `package.json` with VDS dependencies
+- Create `package.json` with VSS dependencies
 - Set up the `scripts/` directory with sync server
 - Create initial project structure
 - Install required npm packages
@@ -48,16 +48,16 @@ Run the development command:
 npm run start
 ```
 
-This starts both your development server and the VDS sync server.
+This starts both your development server and the VSS sync server.
 
 ## Step 2: Open the Drawing Canvas
 
-### 2.1 Activate VDS Extension
+### 2.1 Activate VSS Extension
 
 In VS Code, open the Command Palette and run:
 
 ```
-VDS: Open Drawing Canvas
+VSS: Open Drawing Canvas
 ```
 
 A new panel will open showing the drawing canvas interface.
@@ -216,7 +216,7 @@ Drawing Canvas ←→ VS Code Editor ←→ Live Browser
 
 ## Step 6: Next Steps
 
-Congratulations! You've created your first VDS component with three-way sync.
+Congratulations! You've created your first VSS component with three-way sync.
 
 ### Immediate Next Steps
 
@@ -239,7 +239,7 @@ Congratulations! You've created your first VDS component with three-way sync.
 ## Troubleshooting
 
 ### Canvas Not Loading
-- Ensure VDS extension is installed and activated
+- Ensure VSS extension is installed and activated
 - Check that sync server is running (`npm run start`)
 - Look for errors in VS Code Output panel
 
@@ -262,7 +262,7 @@ Congratulations! You've created your first VDS component with three-way sync.
 
 - **Discord Community**: Join for live help and discussions
 - **GitHub Issues**: Report bugs and request features
-- **Documentation**: Check the full VDS documentation
+- **Documentation**: Check the full VSS documentation
 - **Video Tutorials**: Watch our YouTube channel for visual guides
 
 Ready to dive deeper? Continue with [Basic Shape Drawing](./basic-shapes.md) to master all the drawing tools!

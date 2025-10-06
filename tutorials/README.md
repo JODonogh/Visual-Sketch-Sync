@@ -1,13 +1,13 @@
-# VDS Tutorials
+# VSS Tutorials
 
-Step-by-step tutorials for mastering the Visual Design Sync workflow and professional drawing tools.
+Step-by-step tutorials for mastering the Visual Sketch Sync workflow and professional drawing tools.
 
 ## Tutorial Categories
 
 ### 🎯 Beginner Tutorials
-Perfect for getting started with VDS and understanding the basic three-way sync workflow.
+Perfect for getting started with VSS and understanding the basic three-way sync workflow.
 
-- **[Getting Started](./beginner/getting-started.md)** - Your first VDS project setup
+- **[Getting Started](./beginner/getting-started.md)** - Your first VSS project setup
 - **[Basic Shape Drawing](./beginner/basic-shapes.md)** - Drawing rectangles, circles, and lines
 - **[Color Management](./beginner/colors.md)** - Using the color picker and palette system
 - **[Simple CSS Generation](./beginner/css-generation.md)** - From shapes to CSS classes
@@ -29,9 +29,9 @@ Professional workflows for complex design systems and tablet optimization.
 - **[Performance Optimization](./advanced/performance.md)** - Optimizing sync performance
 
 ### 🔧 Framework Integration
-Learn how to integrate VDS with popular React frameworks and design systems.
+Learn how to integrate VSS with popular React frameworks and design systems.
 
-- **[Next.js Integration](./frameworks/nextjs.md)** - VDS with Next.js projects
+- **[Next.js Integration](./frameworks/nextjs.md)** - VSS with Next.js projects
 - **[Material-UI Integration](./frameworks/material-ui.md)** - Generating Material-UI themes
 - **[Tailwind CSS Integration](./frameworks/tailwind.md)** - Custom utility class generation
 - **[Styled Components](./frameworks/styled-components.md)** - CSS-in-JS integration
@@ -40,7 +40,7 @@ Learn how to integrate VDS with popular React frameworks and design systems.
 
 ### 1. Choose Your Experience Level
 
-**New to VDS?** Start with [Getting Started](./beginner/getting-started.md)
+**New to VSS?** Start with [Getting Started](./beginner/getting-started.md)
 
 **Familiar with design tools?** Jump to [Component Creation](./intermediate/components.md)
 
@@ -49,7 +49,7 @@ Learn how to integrate VDS with popular React frameworks and design systems.
 ### 2. Set Up Your Environment
 
 All tutorials assume you have:
-- VS Code with VDS extension installed
+- VS Code with VSS extension installed
 - Node.js 16+ for running sync servers
 - A drawing tablet (optional but recommended)
 
@@ -65,7 +65,7 @@ Each tutorial includes:
 ## Common Workflows
 
 ### Design-to-Code Workflow
-1. **Draw** components in VDS canvas
+1. **Draw** components in VSS canvas
 2. **Generate** CSS and React code automatically
 3. **Refine** through three-way sync
 4. **Export** to production-ready components
@@ -108,7 +108,7 @@ Each tutorial includes:
 
 ### YouTube Playlist
 Watch our comprehensive video tutorial series:
-- **VDS Basics** (10 minutes) - Overview and first project
+- **VSS Basics** (10 minutes) - Overview and first project
 - **Drawing Tools Deep Dive** (15 minutes) - Professional drawing features
 - **Three-Way Sync Explained** (12 minutes) - Understanding the sync system
 - **Tablet Workflow Mastery** (20 minutes) - Apple Pencil and Wacom tips
@@ -124,7 +124,7 @@ Try our interactive browser demos:
 ### Discord Community
 Join our Discord for:
 - Live help and troubleshooting
-- Sharing your VDS creations
+- Sharing your VSS creations
 - Beta feature previews
 - Community challenges and contests
 

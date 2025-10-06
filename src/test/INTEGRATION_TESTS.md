@@ -1,8 +1,8 @@
-# VDS Integration Tests Implementation
+# VSS Integration Tests Implementation
 
 ## Overview
 
-This implementation provides comprehensive integration tests for the VDS (Visual Design Sync) extension, covering all requirements specified in task 8.2:
+This implementation provides comprehensive integration tests for the VSS (Visual Sketch Sync) extension, covering all requirements specified in task 8.2:
 
 - ✅ VS Code webview communication and extension lifecycle
 - ✅ File system watcher integration and Chrome DevTools Protocol
@@ -16,7 +16,7 @@ The main test runner implements comprehensive integration tests covering:
 
 #### 1. Extension Lifecycle Tests
 - **Extension Activation**: Verifies the extension activates successfully
-- **Command Registration**: Ensures all VDS commands are properly registered
+- **Command Registration**: Ensures all VSS commands are properly registered
 - **Context Management**: Tests extension context and state management
 
 #### 2. Webview Communication Tests
@@ -41,7 +41,7 @@ The main test runner implements comprehensive integration tests covering:
 
 ### Test Command Integration (`run-integration-tests.ts`)
 
-Provides a VS Code command (`vds.runIntegrationTests`) that:
+Provides a VS Code command (`vss.runIntegrationTests`) that:
 - Creates a dedicated output channel for test results
 - Runs all integration tests within VS Code environment
 - Provides real-time test feedback and results
@@ -73,8 +73,8 @@ Provides a VS Code command (`vds.runIntegrationTests`) that:
 
 ### Method 1: VS Code Command Palette
 1. Open Command Palette (Ctrl+Shift+P)
-2. Run "VDS: Run Integration Tests"
-3. View results in the "VDS Integration Tests" output channel
+2. Run "VSS: Run Integration Tests"
+3. View results in the "VSS Integration Tests" output channel
 
 ### Method 2: Programmatic Execution
 ```typescript
@@ -144,9 +144,9 @@ The test framework can be extended to include:
 ### Debug Mode
 Enable detailed logging by setting environment variables:
 ```bash
-DEBUG=vds:* code
+DEBUG=vss:* code
 ```
 
 ## Conclusion
 
-This integration test implementation provides comprehensive coverage of all requirements specified in task 8.2, ensuring the VDS extension works correctly across all supported platforms and integrates properly with VS Code APIs and Chrome DevTools Protocol.
+This integration test implementation provides comprehensive coverage of all requirements specified in task 8.2, ensuring the VSS extension works correctly across all supported platforms and integrates properly with VS Code APIs and Chrome DevTools Protocol.

@@ -1,22 +1,22 @@
 {
-  "name": "visual-design-sync",
-  "displayName": "Visual Design Sync",
+  "name": "visual-sketch-sync",
+  "displayName": "Visual Sketch Sync",
   "description": "Revolutionary three-way sync between drawing canvas, VS Code, and live browser. Design visually, code efficiently.",
   "version": "1.0.0",
-  "publisher": "visual-design-sync",
+  "publisher": "visual-sketch-sync",
   "author": {
-    "name": "VDS Team",
-    "email": "team@vds.dev",
-    "url": "https://vds.dev"
+    "name": "VSS Team",
+    "email": "team@vss.dev",
+    "url": "https://vss.dev"
   },
   "license": "MIT",
-  "homepage": "https://vds.dev",
+  "homepage": "https://vss.dev",
   "repository": {
     "type": "git",
-    "url": "https://github.com/vds/visual-design-sync.git"
+    "url": "https://github.com/vss/visual-sketch-sync.git"
   },
   "bugs": {
-    "url": "https://github.com/vds/visual-design-sync/issues"
+    "url": "https://github.com/vss/visual-sketch-sync/issues"
   },
   "engines": {
     "vscode": "^1.70.0",
@@ -50,164 +50,164 @@
     "mobile-first"
   ],
   "activationEvents": [
-    "onCommand:vds.initializeProject",
-    "onCommand:vds.openDrawingCanvas",
-    "onCommand:vds.startSyncServer",
+    "onCommand:vss.initializeProject",
+    "onCommand:vss.openDrawingCanvas",
+    "onCommand:vss.startSyncServer",
     "workspaceContains:**/design-data.json",
-    "workspaceContains:**/vds-sync-server.js"
+    "workspaceContains:**/vss-sync-server.js"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "vds.initializeProject",
+        "command": "vss.initializeProject",
         "title": "Initialize Project",
-        "category": "VDS"
+        "category": "VSS"
       },
       {
-        "command": "vds.openDrawingCanvas",
+        "command": "vss.openDrawingCanvas",
         "title": "Open Drawing Canvas",
-        "category": "VDS",
+        "category": "VSS",
         "icon": "$(paintcan)"
       },
       {
-        "command": "vds.startSyncServer",
+        "command": "vss.startSyncServer",
         "title": "Start Sync Server",
-        "category": "VDS",
+        "category": "VSS",
         "icon": "$(sync)"
       },
       {
-        "command": "vds.stopSyncServer",
+        "command": "vss.stopSyncServer",
         "title": "Stop Sync Server",
-        "category": "VDS",
+        "category": "VSS",
         "icon": "$(debug-stop)"
       },
       {
-        "command": "vds.restartSyncServer",
+        "command": "vss.restartSyncServer",
         "title": "Restart Sync Server",
-        "category": "VDS",
+        "category": "VSS",
         "icon": "$(refresh)"
       },
       {
-        "command": "vds.exportDesign",
+        "command": "vss.exportDesign",
         "title": "Export Design",
-        "category": "VDS",
+        "category": "VSS",
         "icon": "$(export)"
       },
       {
-        "command": "vds.generateComponents",
+        "command": "vss.generateComponents",
         "title": "Generate Components",
-        "category": "VDS",
+        "category": "VSS",
         "icon": "$(code)"
       },
       {
-        "command": "vds.openDocumentation",
+        "command": "vss.openDocumentation",
         "title": "Open Documentation",
-        "category": "VDS",
+        "category": "VSS",
         "icon": "$(book)"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "vds-explorer",
-          "title": "Visual Design Sync",
+          "id": "vss-explorer",
+          "title": "Visual Sketch Sync",
           "icon": "$(paintcan)"
         }
       ]
     },
     "views": {
-      "vds-explorer": [
+      "vss-explorer": [
         {
-          "id": "vds-canvas",
+          "id": "vss-canvas",
           "name": "Drawing Canvas",
           "type": "webview",
-          "when": "vds.canvasEnabled"
+          "when": "vss.canvasEnabled"
         },
         {
-          "id": "vds-layers",
+          "id": "vss-layers",
           "name": "Layers",
-          "when": "vds.canvasEnabled"
+          "when": "vss.canvasEnabled"
         },
         {
-          "id": "vds-components",
+          "id": "vss-components",
           "name": "Components",
-          "when": "vds.projectInitialized"
+          "when": "vss.projectInitialized"
         },
         {
-          "id": "vds-sync-status",
+          "id": "vss-sync-status",
           "name": "Sync Status",
-          "when": "vds.syncServerRunning"
+          "when": "vss.syncServerRunning"
         }
       ]
     },
     "viewsWelcome": [
       {
-        "view": "vds-canvas",
-        "contents": "Welcome to Visual Design Sync!\n\n[Initialize Project](command:vds.initializeProject)\n\n[Open Documentation](command:vds.openDocumentation)"
+        "view": "vss-canvas",
+        "contents": "Welcome to Visual Sketch Sync!\n\n[Initialize Project](command:vss.initializeProject)\n\n[Open Documentation](command:vss.openDocumentation)"
       }
     ],
     "menus": {
       "commandPalette": [
         {
-          "command": "vds.initializeProject",
-          "when": "!vds.projectInitialized"
+          "command": "vss.initializeProject",
+          "when": "!vss.projectInitialized"
         },
         {
-          "command": "vds.openDrawingCanvas",
-          "when": "vds.projectInitialized"
+          "command": "vss.openDrawingCanvas",
+          "when": "vss.projectInitialized"
         },
         {
-          "command": "vds.startSyncServer",
-          "when": "vds.projectInitialized && !vds.syncServerRunning"
+          "command": "vss.startSyncServer",
+          "when": "vss.projectInitialized && !vss.syncServerRunning"
         },
         {
-          "command": "vds.stopSyncServer",
-          "when": "vds.syncServerRunning"
+          "command": "vss.stopSyncServer",
+          "when": "vss.syncServerRunning"
         },
         {
-          "command": "vds.restartSyncServer",
-          "when": "vds.projectInitialized"
+          "command": "vss.restartSyncServer",
+          "when": "vss.projectInitialized"
         }
       ],
       "view/title": [
         {
-          "command": "vds.openDrawingCanvas",
-          "when": "view == vds-canvas",
+          "command": "vss.openDrawingCanvas",
+          "when": "view == vss-canvas",
           "group": "navigation"
         },
         {
-          "command": "vds.exportDesign",
-          "when": "view == vds-canvas && vds.hasDesignData",
+          "command": "vss.exportDesign",
+          "when": "view == vss-canvas && vss.hasDesignData",
           "group": "navigation"
         }
       ],
       "explorer/context": [
         {
-          "command": "vds.generateComponents",
+          "command": "vss.generateComponents",
           "when": "resourceExtname == .json && resourceFilename =~ /design-data/",
-          "group": "vds"
+          "group": "vss"
         }
       ]
     },
     "keybindings": [
       {
-        "command": "vds.openDrawingCanvas",
+        "command": "vss.openDrawingCanvas",
         "key": "ctrl+shift+d",
         "mac": "cmd+shift+d",
-        "when": "vds.projectInitialized"
+        "when": "vss.projectInitialized"
       },
       {
-        "command": "vds.startSyncServer",
+        "command": "vss.startSyncServer",
         "key": "ctrl+shift+s",
         "mac": "cmd+shift+s",
-        "when": "vds.projectInitialized && !vds.syncServerRunning"
+        "when": "vss.projectInitialized && !vss.syncServerRunning"
       }
     ],
     "configuration": {
-      "title": "Visual Design Sync",
+      "title": "Visual Sketch Sync",
       "properties": {
-        "vds.canvas.defaultSize": {
+        "vss.canvas.defaultSize": {
           "type": "object",
           "default": {
             "width": 1200,
@@ -225,50 +225,50 @@
             }
           }
         },
-        "vds.canvas.backgroundColor": {
+        "vss.canvas.backgroundColor": {
           "type": "string",
           "default": "#ffffff",
           "description": "Default canvas background color"
         },
-        "vds.canvas.gridSize": {
+        "vss.canvas.gridSize": {
           "type": "number",
           "default": 8,
           "minimum": 1,
           "maximum": 100,
           "description": "Grid size in pixels for alignment guides"
         },
-        "vds.canvas.snapToGrid": {
+        "vss.canvas.snapToGrid": {
           "type": "boolean",
           "default": true,
           "description": "Enable snap-to-grid for drawing tools"
         },
-        "vds.sync.serverPort": {
+        "vss.sync.serverPort": {
           "type": "number",
           "default": 8080,
           "minimum": 1024,
           "maximum": 65535,
           "description": "Port for the sync server WebSocket connection"
         },
-        "vds.sync.autoStart": {
+        "vss.sync.autoStart": {
           "type": "boolean",
           "default": true,
-          "description": "Automatically start sync server when opening VDS project"
+          "description": "Automatically start sync server when opening VSS project"
         },
-        "vds.sync.reconnectAttempts": {
+        "vss.sync.reconnectAttempts": {
           "type": "number",
           "default": 5,
           "minimum": 0,
           "maximum": 20,
           "description": "Number of reconnection attempts for WebSocket"
         },
-        "vds.sync.debounceDelay": {
+        "vss.sync.debounceDelay": {
           "type": "number",
           "default": 100,
           "minimum": 0,
           "maximum": 1000,
           "description": "Debounce delay in milliseconds for sync operations"
         },
-        "vds.codeGeneration.framework": {
+        "vss.codeGeneration.framework": {
           "type": "string",
           "enum": [
             "react",
@@ -279,7 +279,7 @@
           "default": "react",
           "description": "Target framework for component generation"
         },
-        "vds.codeGeneration.cssFramework": {
+        "vss.codeGeneration.cssFramework": {
           "type": "string",
           "enum": [
             "vanilla",
@@ -290,12 +290,12 @@
           "default": "vanilla",
           "description": "CSS framework for style generation"
         },
-        "vds.codeGeneration.outputDirectory": {
+        "vss.codeGeneration.outputDirectory": {
           "type": "string",
           "default": "src/components",
           "description": "Directory for generated component files"
         },
-        "vds.codeGeneration.fileNamingConvention": {
+        "vss.codeGeneration.fileNamingConvention": {
           "type": "string",
           "enum": [
             "camelCase",
@@ -305,34 +305,34 @@
           "default": "PascalCase",
           "description": "File naming convention for generated components"
         },
-        "vds.tablet.enablePressureSensitivity": {
+        "vss.tablet.enablePressureSensitivity": {
           "type": "boolean",
           "default": true,
           "description": "Enable pressure sensitivity for tablet input"
         },
-        "vds.tablet.palmRejection": {
+        "vss.tablet.palmRejection": {
           "type": "boolean",
           "default": true,
           "description": "Enable palm rejection for tablet drawing"
         },
-        "vds.performance.maxHistorySize": {
+        "vss.performance.maxHistorySize": {
           "type": "number",
           "default": 50,
           "minimum": 10,
           "maximum": 200,
           "description": "Maximum number of undo/redo operations to keep"
         },
-        "vds.performance.enableDebugLogging": {
+        "vss.performance.enableDebugLogging": {
           "type": "boolean",
           "default": false,
           "description": "Enable debug logging for troubleshooting"
         },
-        "vds.devtools.enableChromeIntegration": {
+        "vss.devtools.enableChromeIntegration": {
           "type": "boolean",
           "default": true,
           "description": "Enable Chrome DevTools integration for three-way sync"
         },
-        "vds.devtools.enableReactDevTools": {
+        "vss.devtools.enableReactDevTools": {
           "type": "boolean",
           "default": true,
           "description": "Enable React DevTools integration"
@@ -341,14 +341,14 @@
     },
     "taskDefinitions": [
       {
-        "type": "vds-sync",
+        "type": "vss-sync",
         "required": [
           "command"
         ],
         "properties": {
           "command": {
             "type": "string",
-            "description": "The VDS sync command to run"
+            "description": "The VSS sync command to run"
           },
           "port": {
             "type": "number",
@@ -359,8 +359,8 @@
     ],
     "debuggers": [
       {
-        "type": "vds-chrome",
-        "label": "VDS Chrome Debugger",
+        "type": "vss-chrome",
+        "label": "VSS Chrome Debugger",
         "program": "./out/debugAdapter.js",
         "runtime": "node",
         "configurationAttributes": {
@@ -374,9 +374,9 @@
                 "description": "URL to launch Chrome with",
                 "default": "http://localhost:3000"
               },
-              "enableVDSSync": {
+              "enableVSSSync": {
                 "type": "boolean",
-                "description": "Enable VDS three-way sync",
+                "description": "Enable VSS three-way sync",
                 "default": true
               }
             }
@@ -422,24 +422,24 @@
   },
   "badges": [
     {
-      "url": "https://img.shields.io/github/stars/vds/visual-design-sync?style=social",
-      "href": "https://github.com/vds/visual-design-sync",
+      "url": "https://img.shields.io/github/stars/vss/visual-sketch-sync?style=social",
+      "href": "https://github.com/vss/visual-sketch-sync",
       "description": "GitHub Stars"
     },
     {
-      "url": "https://img.shields.io/visual-studio-marketplace/d/visual-design-sync.vds",
-      "href": "https://marketplace.visualstudio.com/items?itemName=visual-design-sync.vds",
+      "url": "https://img.shields.io/visual-studio-marketplace/d/visual-sketch-sync.vss",
+      "href": "https://marketplace.visualstudio.com/items?itemName=visual-sketch-sync.vss",
       "description": "Downloads"
     },
     {
-      "url": "https://img.shields.io/visual-studio-marketplace/r/visual-design-sync.vds",
-      "href": "https://marketplace.visualstudio.com/items?itemName=visual-design-sync.vds",
+      "url": "https://img.shields.io/visual-studio-marketplace/r/visual-sketch-sync.vss",
+      "href": "https://marketplace.visualstudio.com/items?itemName=visual-sketch-sync.vss",
       "description": "Rating"
     }
   ],
   "preview": false,
-  "qna": "https://github.com/vds/visual-design-sync/discussions",
+  "qna": "https://github.com/vss/visual-sketch-sync/discussions",
   "sponsor": {
-    "url": "https://github.com/sponsors/vds"
+    "url": "https://github.com/sponsors/vss"
   }
 }

@@ -37,8 +37,8 @@ coverage/
 
 # Backup files
 *.backup
-.vds-backups/
-.vds-recovery-backups/
+.vss-backups/
+.vss-recovery-backups/
 
 # Temporary files
 *.tmp

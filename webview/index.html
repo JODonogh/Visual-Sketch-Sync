@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
-    <title>VDS Drawing Canvas</title>
+    <title>VSS Drawing Canvas</title>
     <script src="error-handler.js"></script>
     <script src="drawing-tools.js"></script>
     <script src="color-system.js"></script>
@@ -2671,7 +2671,7 @@
                 window.syncServerWS = new WebSocket(wsUrl);
                 
                 window.syncServerWS.onopen = function(event) {
-                    console.log('🔌 Connected to VDS Sync Server');
+                    console.log('🔌 Connected to VSS Sync Server');
                     
                     // Send initial connection message
                     window.syncServerWS.send(JSON.stringify({
@@ -2693,7 +2693,7 @@
                 };
                 
                 window.syncServerWS.onclose = function(event) {
-                    console.log('🔌 Disconnected from VDS Sync Server');
+                    console.log('🔌 Disconnected from VSS Sync Server');
                     
                     // Attempt to reconnect after 3 seconds
                     setTimeout(() => {
@@ -2864,7 +2864,7 @@
             }
         }
 
-        console.log('VDS Drawing Canvas with Pointer Events API initialized');
+        console.log('VSS Drawing Canvas with Pointer Events API initialized');
         console.log('Pressure sensitivity support will be detected on first input');
         
         // Connect to sync server after a short delay to ensure canvas is ready

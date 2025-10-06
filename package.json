@@ -1,7 +1,7 @@
 {
-  "name": "vds-design-canvas",
-  "displayName": "VDS Design Canvas",
-  "description": "Visual Design Sync - Three-way synchronization between drawing canvas, VS Code, and live Chrome application",
+  "name": "visual-sketch-sync",
+  "displayName": "Visual Sketch Sync",
+  "description": "Visual Sketch Sync - Three-way synchronization between drawing canvas, VS Code, and live Chrome application",
   "version": "0.1.0",
   "publisher": "kiro",
   "engines": {
@@ -20,133 +20,133 @@
     "stylus"
   ],
   "activationEvents": [
-    "onCommand:vds.openDrawingCanvas",
-    "onCommand:vds.startSyncServer",
-    "onWebviewPanel:vds.drawingCanvas",
+    "onCommand:vss.openDrawingCanvas",
+    "onCommand:vss.startSyncServer",
+    "onWebviewPanel:vss.drawingCanvas",
     "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "vds.openDrawingCanvas",
+        "command": "vss.openDrawingCanvas",
         "title": "Open Drawing Canvas",
-        "category": "VDS"
+        "category": "VSS"
       },
       {
-        "command": "vds.startSyncServer",
+        "command": "vss.startSyncServer",
         "title": "Start Sync Server",
-        "category": "VDS"
+        "category": "VSS"
       },
       {
-        "command": "vds.stopSyncServer",
+        "command": "vss.stopSyncServer",
         "title": "Stop Sync Server",
-        "category": "VDS"
+        "category": "VSS"
       },
       {
-        "command": "vds.exportDesign",
+        "command": "vss.exportDesign",
         "title": "Export Design",
-        "category": "VDS"
+        "category": "VSS"
       },
       {
-        "command": "vds.startLiveServer",
+        "command": "vss.startLiveServer",
         "title": "Start Live Server Integration",
-        "category": "VDS"
+        "category": "VSS"
       },
       {
-        "command": "vds.debugChrome",
-        "title": "Debug Chrome for VDS",
-        "category": "VDS"
+        "command": "vss.debugChrome",
+        "title": "Debug Chrome for VSS",
+        "category": "VSS"
       },
       {
-        "command": "vds.captureDOMTree",
+        "command": "vss.captureDOMTree",
         "title": "Capture DOM Tree from Chrome",
-        "category": "VDS"
+        "category": "VSS"
       },
       {
-        "command": "vds.captureStylesheets",
+        "command": "vss.captureStylesheets",
         "title": "Capture Stylesheets from Chrome",
-        "category": "VDS"
+        "category": "VSS"
       },
       {
-        "command": "vds.runIntegrationTests",
+        "command": "vss.runIntegrationTests",
         "title": "Run Integration Tests",
-        "category": "VDS"
+        "category": "VSS"
       },
       {
-        "command": "vds.runDiagnostics",
+        "command": "vss.runDiagnostics",
         "title": "Run System Diagnostics",
-        "category": "VDS"
+        "category": "VSS"
       },
       {
-        "command": "vds.runRecovery",
+        "command": "vss.runRecovery",
         "title": "Run Recovery Tool",
-        "category": "VDS"
+        "category": "VSS"
       },
       {
-        "command": "vds.clearCanvasHistory",
+        "command": "vss.clearCanvasHistory",
         "title": "Clear Canvas History",
-        "category": "VDS"
+        "category": "VSS"
       },
       {
-        "command": "vds.exportErrorLogs",
+        "command": "vss.exportErrorLogs",
         "title": "Export Error Logs",
-        "category": "VDS"
+        "category": "VSS"
       }
     ],
     "views": {
       "explorer": [
         {
-          "id": "vds.drawingCanvas",
-          "name": "VDS Drawing Canvas",
+          "id": "vss.drawingCanvas",
+          "name": "VSS Drawing Canvas",
           "type": "webview",
-          "when": "workspaceHasVDSProject"
+          "when": "workspaceHasVSSProject"
         }
       ]
     },
     "viewsContainers": {
       "panel": [
         {
-          "id": "vds.panel",
-          "title": "VDS Design",
+          "id": "vss.panel",
+          "title": "VSS Design",
           "icon": "$(paintcan)"
         }
       ]
     },
     "configuration": {
-      "title": "VDS Design Canvas",
+      "title": "Visual Sketch Sync",
       "properties": {
-        "vds.canvas.width": {
+        "vss.canvas.width": {
           "type": "number",
           "default": 1920,
           "description": "Default canvas width"
         },
-        "vds.canvas.height": {
+        "vss.canvas.height": {
           "type": "number",
           "default": 1080,
           "description": "Default canvas height"
         },
-        "vds.tablet.pressureSensitivity": {
+        "vss.tablet.pressureSensitivity": {
           "type": "boolean",
           "default": true,
           "description": "Enable pressure sensitivity for tablets and stylus"
         },
-        "vds.sync.autoStart": {
+        "vss.sync.autoStart": {
           "type": "boolean",
           "default": true,
-          "description": "Automatically start sync server when opening VDS project"
+          "description": "Automatically start sync server when opening VSS project"
         },
-        "vds.sync.port": {
+        "vss.sync.port": {
           "type": "number",
           "default": 3001,
           "description": "Port for the sync server WebSocket connection"
         },
-        "vds.liveServer.autoStart": {
+        "vss.liveServer.autoStart": {
           "type": "boolean",
           "default": false,
-          "description": "Automatically start Live Server when opening VDS project"
+          "description": "Automatically start Live Server when opening VSS project"
         },
-        "vds.chrome.debugPort": {
+        "vss.chrome.debugPort": {
           "type": "number",
           "default": 9222,
           "description": "Port for Chrome remote debugging"
@@ -156,22 +156,22 @@
   },
   "taskDefinitions": [
     {
-      "type": "vds",
+      "type": "vss",
       "required": [
         "task"
       ],
       "properties": {
         "task": {
           "type": "string",
-          "description": "The VDS task to execute"
+          "description": "The VSS task to execute"
         }
       }
     }
   ],
   "problemMatchers": [
     {
-      "name": "vds-sync-server",
-      "owner": "vds",
+      "name": "vss-sync-server",
+      "owner": "vss",
       "fileLocation": [
         "relative",
         "${workspaceFolder}"
@@ -190,11 +190,11 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "diagnostics": "node scripts/vds-diagnostics.js",
-    "test:diagnostics": "node scripts/vds-diagnostics.js --format json",
-    "recovery": "node scripts/vds-recovery-tool.js",
-    "recovery:auto": "node scripts/vds-recovery-tool.js --auto-fix",
-    "health-check": "node scripts/vds-diagnostics.js && echo 'Run npm run recovery if issues found'",
+    "diagnostics": "node scripts/vss-diagnostics.js",
+    "test:diagnostics": "node scripts/vss-diagnostics.js --format json",
+    "recovery": "node scripts/vss-recovery-tool.js",
+    "recovery:auto": "node scripts/vss-recovery-tool.js --auto-fix",
+    "health-check": "node scripts/vss-diagnostics.js && echo 'Run npm run recovery if issues found'",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
