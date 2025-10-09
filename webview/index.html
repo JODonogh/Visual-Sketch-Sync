@@ -281,12 +281,92 @@
         </div>
         
         <div class="toolbar">
-            <button class="tool-button active" data-tool="pen" id="pen-tool">Pen</button>
-            <button class="tool-button" data-tool="eraser" id="eraser-tool">Eraser</button>
-            <button class="tool-button" id="clear-canvas">Clear</button>
+            <button class="tool-button active" data-tool="pen" id="pen-tool">✏️ Pen</button>
+            <button class="tool-button" data-tool="brush" id="brush-tool">🖌️ Brush</button>
+            <button class="tool-button" data-tool="rectangle" id="rectangle-tool">⬜ Rectangle</button>
+            <button class="tool-button" data-tool="circle" id="circle-tool">⭕ Circle</button>
+            <button class="tool-button" data-tool="line" id="line-tool">📏 Line</button>
+            <button class="tool-button" data-tool="eraser" id="eraser-tool">🧽 Eraser</button>
+            <button class="tool-button" id="clear-canvas">🗑️ Clear</button>
+            <button class="tool-button" id="generate-code">💻 Generate Code</button>
+            <button class="tool-button" id="settings-toggle">⚙️ Settings</button>
+        </div>
+        
+        <!-- Settings Panel -->
+        <div id="settings-panel" style="display: none; position: absolute; top: 100px; left: 10px; width: 250px; background: rgba(30, 30, 30, 0.95); border: 1px solid #555; border-radius: 8px; padding: 15px; z-index: 150;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin: 0; color: #cccccc; font-size: 16px;">Drawing Settings</h3>
+                <button id="close-settings" style="background: none; border: none; color: #999; cursor: pointer; font-size: 16px;">✕</button>
+            </div>
+            
+            <!-- Brush Size -->
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 5px;">Brush Size: <span id="brush-size-value">5</span>px</label>
+                <input type="range" id="brush-size" min="1" max="50" value="5" style="width: 100%; background: #3c3c3c;">
+                <div style="display: flex; justify-content: space-between; font-size: 10px; color: #999; margin-top: 2px;">
+                    <span>1px</span>
+                    <span>50px</span>
+                </div>
+            </div>
+            
+            <!-- Opacity -->
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 5px;">Opacity: <span id="opacity-value">100</span>%</label>
+                <input type="range" id="opacity" min="10" max="100" value="100" style="width: 100%; background: #3c3c3c;">
+            </div>
+            
+            <!-- Color Picker -->
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 5px;">Color</label>
+                <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                    <input type="color" id="color-picker" value="#000000" style="width: 40px; height: 30px; border: none; border-radius: 4px; cursor: pointer;">
+                    <button class="color-preset" data-color="#000000" style="width: 25px; height: 25px; background: #000000; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
+                    <button class="color-preset" data-color="#ff0000" style="width: 25px; height: 25px; background: #ff0000; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
+                    <button class="color-preset" data-color="#00ff00" style="width: 25px; height: 25px; background: #00ff00; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
+                    <button class="color-preset" data-color="#0000ff" style="width: 25px; height: 25px; background: #0000ff; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
+                    <button class="color-preset" data-color="#ffff00" style="width: 25px; height: 25px; background: #ffff00; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
+                    <button class="color-preset" data-color="#ff00ff" style="width: 25px; height: 25px; background: #ff00ff; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
+                    <button class="color-preset" data-color="#00ffff" style="width: 25px; height: 25px; background: #00ffff; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
+                    <button class="color-preset" data-color="#ffffff" style="width: 25px; height: 25px; background: #ffffff; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
+                </div>
+            </div>
+            
+            <!-- Pressure Sensitivity -->
+            <div style="margin-bottom: 15px;">
+                <label style="display: flex; align-items: center; color: #cccccc; font-size: 12px;">
+                    <input type="checkbox" id="pressure-sensitivity" checked style="margin-right: 8px;">
+                    Enable Pressure Sensitivity
+                </label>
+                <div style="font-size: 10px; color: #999; margin-top: 3px;">Works with pressure-sensitive stylus/tablet</div>
+            </div>
+            
+            <!-- Smoothing -->
+            <div style="margin-bottom: 10px;">
+                <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 5px;">Smoothing: <span id="smoothing-value">50</span>%</label>
+                <input type="range" id="smoothing" min="0" max="100" value="50" style="width: 100%; background: #3c3c3c;">
+            </div>
         </div>
         
         <canvas id="drawing-canvas"></canvas>
+        
+        <!-- Code Generation Panel -->
+        <div id="code-panel" style="display: none; position: absolute; right: 10px; top: 50px; width: 300px; max-height: 400px; background: rgba(30, 30, 30, 0.95); border: 1px solid #555; border-radius: 8px; padding: 10px; z-index: 200;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 style="margin: 0; color: #cccccc; font-size: 14px;">Generated Code</h3>
+                <button id="close-code-panel" style="background: none; border: none; color: #999; cursor: pointer; font-size: 16px;">✕</button>
+            </div>
+            <select id="code-language" style="width: 100%; margin-bottom: 10px; background: #3c3c3c; color: #cccccc; border: 1px solid #555; padding: 5px;">
+                <option value="html">HTML Canvas</option>
+                <option value="svg">SVG</option>
+                <option value="css">CSS</option>
+                <option value="javascript">JavaScript</option>
+            </select>
+            <textarea id="code-output" readonly style="width: 100%; height: 250px; background: #1a1a1a; color: #cccccc; border: 1px solid #555; padding: 8px; font-family: 'Courier New', monospace; font-size: 12px; resize: vertical;"></textarea>
+            <div style="margin-top: 10px;">
+                <button id="copy-code" style="background: #007acc; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">Copy Code</button>
+                <button id="refresh-code" style="background: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-left: 5px;">Refresh</button>
+            </div>
+        </div>
     </div>
 
     <!-- Error Recovery Manager and Notification System are loaded inline to avoid CSP issues -->
@@ -398,6 +478,28 @@
             };
             
             console.log('VSSCanvas: Namespace created/reset with instance ID:', window.VSSCanvas.instanceId);
+            
+            // Enhanced drawing state
+            window.VSSCanvas.drawingElements = []; // Store drawn elements for code generation
+            window.VSSCanvas.currentShape = null; // For shape tools
+            window.VSSCanvas.isDrawingShape = false;
+            window.VSSCanvas.startX = 0;
+            window.VSSCanvas.startY = 0;
+            
+            // Drawing settings
+            window.VSSCanvas.settings = {
+                brushSize: 5,
+                opacity: 1.0,
+                color: '#000000',
+                pressureSensitivity: true,
+                smoothing: 0.5,
+                minPressure: 0.1,
+                maxPressure: 1.0
+            };
+            
+            // Pressure and smoothing state
+            window.VSSCanvas.pressurePoints = [];
+            window.VSSCanvas.smoothedPath = [];
             
             // Add init method to VSSCanvas namespace
             window.VSSCanvas.init = function() {
@@ -512,6 +614,541 @@
         
         // Initialize DOM references
         initializeDOMReferences();
+        
+        // Enhanced Drawing Tools Implementation
+        window.VSSCanvas.tools = {
+            pen: {
+                start: function(x, y, pressure = 0.5) {
+                    window.VSSCanvas.ctx.beginPath();
+                    window.VSSCanvas.ctx.moveTo(x, y);
+                    window.VSSCanvas.ctx.lineCap = 'round';
+                    window.VSSCanvas.ctx.lineJoin = 'round';
+                    
+                    // Apply settings
+                    const baseSize = window.VSSCanvas.settings.brushSize;
+                    const pressureMultiplier = window.VSSCanvas.settings.pressureSensitivity ? 
+                        (pressure * 0.8 + 0.2) : 1.0; // 20% minimum, 100% maximum
+                    
+                    window.VSSCanvas.ctx.lineWidth = baseSize * pressureMultiplier;
+                    window.VSSCanvas.ctx.strokeStyle = window.VSSCanvas.settings.color;
+                    window.VSSCanvas.ctx.globalAlpha = window.VSSCanvas.settings.opacity;
+                    
+                    // Initialize smoothing
+                    window.VSSCanvas.smoothedPath = [{x, y, pressure}];
+                },
+                draw: function(x, y, pressure = 0.5) {
+                    if (window.VSSCanvas.settings.smoothing > 0) {
+                        // Add point to smoothed path
+                        window.VSSCanvas.smoothedPath.push({x, y, pressure});
+                        
+                        // Apply smoothing
+                        if (window.VSSCanvas.smoothedPath.length >= 3) {
+                            const smoothed = applySmoothingFilter(window.VSSCanvas.smoothedPath);
+                            drawSmoothLine(smoothed);
+                        }
+                    } else {
+                        // Direct drawing without smoothing
+                        const baseSize = window.VSSCanvas.settings.brushSize;
+                        const pressureMultiplier = window.VSSCanvas.settings.pressureSensitivity ? 
+                            (pressure * 0.8 + 0.2) : 1.0;
+                        
+                        window.VSSCanvas.ctx.lineWidth = baseSize * pressureMultiplier;
+                        window.VSSCanvas.ctx.lineTo(x, y);
+                        window.VSSCanvas.ctx.stroke();
+                    }
+                },
+                end: function() {
+                    window.VSSCanvas.ctx.globalAlpha = 1.0;
+                    window.VSSCanvas.drawingElements.push({
+                        type: 'freehand',
+                        tool: 'pen',
+                        color: window.VSSCanvas.settings.color,
+                        width: window.VSSCanvas.settings.brushSize,
+                        opacity: window.VSSCanvas.settings.opacity,
+                        timestamp: Date.now()
+                    });
+                    window.VSSCanvas.smoothedPath = [];
+                }
+            },
+            
+            brush: {
+                start: function(x, y, pressure = 0.5) {
+                    window.VSSCanvas.ctx.beginPath();
+                    window.VSSCanvas.ctx.moveTo(x, y);
+                    window.VSSCanvas.ctx.lineCap = 'round';
+                    window.VSSCanvas.ctx.lineJoin = 'round';
+                    
+                    // Brush uses larger base size and more pressure variation
+                    const baseSize = Math.max(window.VSSCanvas.settings.brushSize * 1.5, 8);
+                    const pressureMultiplier = window.VSSCanvas.settings.pressureSensitivity ? 
+                        (pressure * 1.2 + 0.3) : 1.0; // More variation for brush
+                    
+                    window.VSSCanvas.ctx.lineWidth = baseSize * pressureMultiplier;
+                    window.VSSCanvas.ctx.strokeStyle = window.VSSCanvas.settings.color;
+                    window.VSSCanvas.ctx.globalAlpha = window.VSSCanvas.settings.opacity * 0.8; // Slightly transparent for brush effect
+                    
+                    window.VSSCanvas.smoothedPath = [{x, y, pressure}];
+                },
+                draw: function(x, y, pressure = 0.5) {
+                    if (window.VSSCanvas.settings.smoothing > 0) {
+                        window.VSSCanvas.smoothedPath.push({x, y, pressure});
+                        if (window.VSSCanvas.smoothedPath.length >= 3) {
+                            const smoothed = applySmoothingFilter(window.VSSCanvas.smoothedPath);
+                            drawSmoothLine(smoothed);
+                        }
+                    } else {
+                        const baseSize = Math.max(window.VSSCanvas.settings.brushSize * 1.5, 8);
+                        const pressureMultiplier = window.VSSCanvas.settings.pressureSensitivity ? 
+                            (pressure * 1.2 + 0.3) : 1.0;
+                        
+                        window.VSSCanvas.ctx.lineWidth = baseSize * pressureMultiplier;
+                        window.VSSCanvas.ctx.lineTo(x, y);
+                        window.VSSCanvas.ctx.stroke();
+                    }
+                },
+                end: function() {
+                    window.VSSCanvas.ctx.globalAlpha = 1.0;
+                    window.VSSCanvas.drawingElements.push({
+                        type: 'freehand',
+                        tool: 'brush',
+                        color: window.VSSCanvas.settings.color,
+                        width: Math.max(window.VSSCanvas.settings.brushSize * 1.5, 8),
+                        opacity: window.VSSCanvas.settings.opacity * 0.8,
+                        timestamp: Date.now()
+                    });
+                    window.VSSCanvas.smoothedPath = [];
+                }
+            },
+            
+            rectangle: {
+                start: function(x, y) {
+                    window.VSSCanvas.startX = x;
+                    window.VSSCanvas.startY = y;
+                    window.VSSCanvas.isDrawingShape = true;
+                },
+                draw: function(x, y) {
+                    if (!window.VSSCanvas.isDrawingShape) return;
+                    
+                    // Clear and redraw
+                    window.VSSCanvas.ctx.clearRect(0, 0, window.VSSCanvas.canvas.width, window.VSSCanvas.canvas.height);
+                    redrawElements();
+                    
+                    // Draw preview rectangle
+                    window.VSSCanvas.ctx.strokeStyle = '#007acc';
+                    window.VSSCanvas.ctx.lineWidth = 2;
+                    window.VSSCanvas.ctx.strokeRect(
+                        window.VSSCanvas.startX, 
+                        window.VSSCanvas.startY, 
+                        x - window.VSSCanvas.startX, 
+                        y - window.VSSCanvas.startY
+                    );
+                },
+                end: function(x, y) {
+                    if (!window.VSSCanvas.isDrawingShape) return;
+                    
+                    const rect = {
+                        type: 'rectangle',
+                        x: Math.min(window.VSSCanvas.startX, x),
+                        y: Math.min(window.VSSCanvas.startY, y),
+                        width: Math.abs(x - window.VSSCanvas.startX),
+                        height: Math.abs(y - window.VSSCanvas.startY),
+                        color: '#007acc',
+                        lineWidth: 2,
+                        timestamp: Date.now()
+                    };
+                    
+                    window.VSSCanvas.drawingElements.push(rect);
+                    window.VSSCanvas.isDrawingShape = false;
+                    
+                    // Redraw everything
+                    window.VSSCanvas.ctx.clearRect(0, 0, window.VSSCanvas.canvas.width, window.VSSCanvas.canvas.height);
+                    redrawElements();
+                }
+            },
+            
+            circle: {
+                start: function(x, y) {
+                    window.VSSCanvas.startX = x;
+                    window.VSSCanvas.startY = y;
+                    window.VSSCanvas.isDrawingShape = true;
+                },
+                draw: function(x, y) {
+                    if (!window.VSSCanvas.isDrawingShape) return;
+                    
+                    const radius = Math.sqrt(Math.pow(x - window.VSSCanvas.startX, 2) + Math.pow(y - window.VSSCanvas.startY, 2));
+                    
+                    // Clear and redraw
+                    window.VSSCanvas.ctx.clearRect(0, 0, window.VSSCanvas.canvas.width, window.VSSCanvas.canvas.height);
+                    redrawElements();
+                    
+                    // Draw preview circle
+                    window.VSSCanvas.ctx.strokeStyle = '#28a745';
+                    window.VSSCanvas.ctx.lineWidth = 2;
+                    window.VSSCanvas.ctx.beginPath();
+                    window.VSSCanvas.ctx.arc(window.VSSCanvas.startX, window.VSSCanvas.startY, radius, 0, 2 * Math.PI);
+                    window.VSSCanvas.ctx.stroke();
+                },
+                end: function(x, y) {
+                    if (!window.VSSCanvas.isDrawingShape) return;
+                    
+                    const radius = Math.sqrt(Math.pow(x - window.VSSCanvas.startX, 2) + Math.pow(y - window.VSSCanvas.startY, 2));
+                    
+                    const circle = {
+                        type: 'circle',
+                        x: window.VSSCanvas.startX,
+                        y: window.VSSCanvas.startY,
+                        radius: radius,
+                        color: '#28a745',
+                        lineWidth: 2,
+                        timestamp: Date.now()
+                    };
+                    
+                    window.VSSCanvas.drawingElements.push(circle);
+                    window.VSSCanvas.isDrawingShape = false;
+                    
+                    // Redraw everything
+                    window.VSSCanvas.ctx.clearRect(0, 0, window.VSSCanvas.canvas.width, window.VSSCanvas.canvas.height);
+                    redrawElements();
+                }
+            },
+            
+            line: {
+                start: function(x, y) {
+                    window.VSSCanvas.startX = x;
+                    window.VSSCanvas.startY = y;
+                    window.VSSCanvas.isDrawingShape = true;
+                },
+                draw: function(x, y) {
+                    if (!window.VSSCanvas.isDrawingShape) return;
+                    
+                    // Clear and redraw
+                    window.VSSCanvas.ctx.clearRect(0, 0, window.VSSCanvas.canvas.width, window.VSSCanvas.canvas.height);
+                    redrawElements();
+                    
+                    // Draw preview line
+                    window.VSSCanvas.ctx.strokeStyle = '#dc3545';
+                    window.VSSCanvas.ctx.lineWidth = 2;
+                    window.VSSCanvas.ctx.beginPath();
+                    window.VSSCanvas.ctx.moveTo(window.VSSCanvas.startX, window.VSSCanvas.startY);
+                    window.VSSCanvas.ctx.lineTo(x, y);
+                    window.VSSCanvas.ctx.stroke();
+                },
+                end: function(x, y) {
+                    if (!window.VSSCanvas.isDrawingShape) return;
+                    
+                    const line = {
+                        type: 'line',
+                        startX: window.VSSCanvas.startX,
+                        startY: window.VSSCanvas.startY,
+                        endX: x,
+                        endY: y,
+                        color: '#dc3545',
+                        lineWidth: 2,
+                        timestamp: Date.now()
+                    };
+                    
+                    window.VSSCanvas.drawingElements.push(line);
+                    window.VSSCanvas.isDrawingShape = false;
+                    
+                    // Redraw everything
+                    window.VSSCanvas.ctx.clearRect(0, 0, window.VSSCanvas.canvas.width, window.VSSCanvas.canvas.height);
+                    redrawElements();
+                }
+            },
+            
+            eraser: {
+                start: function(x, y) {
+                    window.VSSCanvas.ctx.globalCompositeOperation = 'destination-out';
+                    window.VSSCanvas.ctx.beginPath();
+                    window.VSSCanvas.ctx.arc(x, y, 10, 0, 2 * Math.PI);
+                    window.VSSCanvas.ctx.fill();
+                },
+                draw: function(x, y) {
+                    window.VSSCanvas.ctx.globalCompositeOperation = 'destination-out';
+                    window.VSSCanvas.ctx.beginPath();
+                    window.VSSCanvas.ctx.arc(x, y, 10, 0, 2 * Math.PI);
+                    window.VSSCanvas.ctx.fill();
+                },
+                end: function() {
+                    window.VSSCanvas.ctx.globalCompositeOperation = 'source-over';
+                }
+            }
+        };
+        
+        // Smoothing and pressure functions
+        function applySmoothingFilter(points) {
+            if (points.length < 3) return points;
+            
+            const smoothingFactor = window.VSSCanvas.settings.smoothing / 100;
+            const smoothed = [points[0]]; // Keep first point
+            
+            for (let i = 1; i < points.length - 1; i++) {
+                const prev = points[i - 1];
+                const curr = points[i];
+                const next = points[i + 1];
+                
+                // Apply smoothing using weighted average
+                const smoothedPoint = {
+                    x: curr.x * (1 - smoothingFactor) + (prev.x + next.x) * smoothingFactor / 2,
+                    y: curr.y * (1 - smoothingFactor) + (prev.y + next.y) * smoothingFactor / 2,
+                    pressure: curr.pressure * (1 - smoothingFactor) + (prev.pressure + next.pressure) * smoothingFactor / 2
+                };
+                
+                smoothed.push(smoothedPoint);
+            }
+            
+            smoothed.push(points[points.length - 1]); // Keep last point
+            return smoothed;
+        }
+        
+        function drawSmoothLine(points) {
+            if (points.length < 2) return;
+            
+            window.VSSCanvas.ctx.beginPath();
+            window.VSSCanvas.ctx.moveTo(points[0].x, points[0].y);
+            
+            for (let i = 1; i < points.length; i++) {
+                const point = points[i];
+                
+                // Apply pressure to line width
+                if (window.VSSCanvas.settings.pressureSensitivity) {
+                    const baseSize = window.VSSCanvas.currentTool === 'brush' ? 
+                        Math.max(window.VSSCanvas.settings.brushSize * 1.5, 8) : 
+                        window.VSSCanvas.settings.brushSize;
+                    const pressureMultiplier = point.pressure * 0.8 + 0.2;
+                    window.VSSCanvas.ctx.lineWidth = baseSize * pressureMultiplier;
+                }
+                
+                window.VSSCanvas.ctx.lineTo(point.x, point.y);
+                window.VSSCanvas.ctx.stroke();
+                
+                // Start new path for next segment to apply new line width
+                if (i < points.length - 1) {
+                    window.VSSCanvas.ctx.beginPath();
+                    window.VSSCanvas.ctx.moveTo(point.x, point.y);
+                }
+            }
+        }
+        
+        function getPressureFromEvent(e) {
+            // Try to get pressure from pointer event (stylus/tablet)
+            if (e.pressure !== undefined) {
+                return Math.max(e.pressure, window.VSSCanvas.settings.minPressure);
+            }
+            
+            // Try to get pressure from touch event
+            if (e.touches && e.touches[0] && e.touches[0].force !== undefined) {
+                return Math.max(e.touches[0].force, window.VSSCanvas.settings.minPressure);
+            }
+            
+            // Simulate pressure based on mouse velocity for mouse users
+            if (e.type.includes('mouse')) {
+                const now = Date.now();
+                const timeDelta = now - (window.VSSCanvas.lastEventTime || now);
+                const distance = Math.sqrt(
+                    Math.pow(e.clientX - (window.VSSCanvas.lastMouseX || e.clientX), 2) +
+                    Math.pow(e.clientY - (window.VSSCanvas.lastMouseY || e.clientY), 2)
+                );
+                
+                window.VSSCanvas.lastEventTime = now;
+                window.VSSCanvas.lastMouseX = e.clientX;
+                window.VSSCanvas.lastMouseY = e.clientY;
+                
+                // Slower movement = higher pressure (more natural feel)
+                const velocity = timeDelta > 0 ? distance / timeDelta : 0;
+                const simulatedPressure = Math.max(0.3, Math.min(1.0, 1.0 - velocity * 0.1));
+                return simulatedPressure;
+            }
+            
+            return 0.5; // Default pressure
+        }
+        
+        // Code generation function
+        function generateCode() {
+            const language = document.getElementById('code-language')?.value || 'html';
+            const codeOutput = document.getElementById('code-output');
+            
+            if (!codeOutput) return;
+            
+            let code = '';
+            
+            switch (language) {
+                case 'html':
+                    code = generateHTMLCode();
+                    break;
+                case 'svg':
+                    code = generateSVGCode();
+                    break;
+                case 'css':
+                    code = generateCSSCode();
+                    break;
+                case 'javascript':
+                    code = generateJavaScriptCode();
+                    break;
+            }
+            
+            codeOutput.value = code;
+        }
+        
+        function generateHTMLCode() {
+            const canvas = window.VSSCanvas.canvas;
+            return `<!DOCTYPE html>
+<html>
+<head>
+    <title>Generated Canvas Drawing</title>
+</head>
+<body>
+    <canvas id="canvas" width="${canvas.width}" height="${canvas.height}" style="border: 1px solid #ccc;"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Generated drawing commands
+        ${generateCanvasCommands()}
+    </script>
+</body>
+</html>`;
+        }
+        
+        function generateSVGCode() {
+            const canvas = window.VSSCanvas.canvas;
+            let svgElements = '';
+            
+            window.VSSCanvas.drawingElements.forEach(element => {
+                switch (element.type) {
+                    case 'rectangle':
+                        svgElements += `    <rect x="${element.x}" y="${element.y}" width="${element.width}" height="${element.height}" fill="none" stroke="${element.color}" stroke-width="${element.lineWidth}"/>\n`;
+                        break;
+                    case 'circle':
+                        svgElements += `    <circle cx="${element.x}" cy="${element.y}" r="${element.radius}" fill="none" stroke="${element.color}" stroke-width="${element.lineWidth}"/>\n`;
+                        break;
+                    case 'line':
+                        svgElements += `    <line x1="${element.startX}" y1="${element.startY}" x2="${element.endX}" y2="${element.endY}" stroke="${element.color}" stroke-width="${element.lineWidth}"/>\n`;
+                        break;
+                }
+            });
+            
+            return `<svg width="${canvas.width}" height="${canvas.height}" xmlns="http://www.w3.org/2000/svg">
+${svgElements}</svg>`;
+        }
+        
+        function generateCSSCode() {
+            return `/* CSS for canvas styling */
+.drawing-canvas {
+    width: ${window.VSSCanvas.canvas.width}px;
+    height: ${window.VSSCanvas.canvas.height}px;
+    border: 1px solid #ccc;
+    background: white;
+    cursor: crosshair;
+}
+
+.drawing-tools {
+    margin: 10px 0;
+}
+
+.tool-button {
+    background: #3c3c3c;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    margin: 2px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.tool-button:hover {
+    background: #4c4c4c;
+}
+
+.tool-button.active {
+    background: #007acc;
+}`;
+        }
+        
+        function generateJavaScriptCode() {
+            return `// Generated JavaScript drawing code
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+// Drawing settings
+ctx.lineCap = 'round';
+ctx.lineJoin = 'round';
+
+// Generated drawing commands
+${generateCanvasCommands()}
+
+// Drawing functions
+function drawRectangle(x, y, width, height, color, lineWidth) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth;
+    ctx.strokeRect(x, y, width, height);
+}
+
+function drawCircle(x, y, radius, color, lineWidth) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, 2 * Math.PI);
+    ctx.stroke();
+}
+
+function drawLine(startX, startY, endX, endY, color, lineWidth) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth;
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(endX, endY);
+    ctx.stroke();
+}`;
+        }
+        
+        function generateCanvasCommands() {
+            let commands = '';
+            
+            window.VSSCanvas.drawingElements.forEach(element => {
+                switch (element.type) {
+                    case 'rectangle':
+                        commands += `drawRectangle(${element.x}, ${element.y}, ${element.width}, ${element.height}, '${element.color}', ${element.lineWidth});\n        `;
+                        break;
+                    case 'circle':
+                        commands += `drawCircle(${element.x}, ${element.y}, ${element.radius}, '${element.color}', ${element.lineWidth});\n        `;
+                        break;
+                    case 'line':
+                        commands += `drawLine(${element.startX}, ${element.startY}, ${element.endX}, ${element.endY}, '${element.color}', ${element.lineWidth});\n        `;
+                        break;
+                    case 'freehand':
+                        commands += `// Freehand drawing with ${element.tool} (${element.color}, width: ${element.width})\n        `;
+                        break;
+                }
+            });
+            
+            return commands.trim();
+        }
+        
+        // Function to redraw all elements
+        function redrawElements() {
+            window.VSSCanvas.drawingElements.forEach(element => {
+                window.VSSCanvas.ctx.strokeStyle = element.color || '#000000';
+                window.VSSCanvas.ctx.lineWidth = element.lineWidth || 2;
+                
+                switch (element.type) {
+                    case 'rectangle':
+                        window.VSSCanvas.ctx.strokeRect(element.x, element.y, element.width, element.height);
+                        break;
+                    case 'circle':
+                        window.VSSCanvas.ctx.beginPath();
+                        window.VSSCanvas.ctx.arc(element.x, element.y, element.radius, 0, 2 * Math.PI);
+                        window.VSSCanvas.ctx.stroke();
+                        break;
+                    case 'line':
+                        window.VSSCanvas.ctx.beginPath();
+                        window.VSSCanvas.ctx.moveTo(element.startX, element.startY);
+                        window.VSSCanvas.ctx.lineTo(element.endX, element.endY);
+                        window.VSSCanvas.ctx.stroke();
+                        break;
+                }
+            });
+        }
         
         // Initialize error notification system
         if (window.ErrorNotificationSystem && !window.errorNotificationSystem) {
@@ -832,12 +1469,23 @@
             const finalWidth = Math.max(newWidth, 300);
             const finalHeight = Math.max(newHeight, 200);
             
+            // Get device pixel ratio for high DPI displays
+            const dpr = window.devicePixelRatio || 1;
+            
             // Only resize if dimensions have changed to avoid unnecessary redraws
-            if (window.VSSCanvas.canvas.width !== finalWidth || window.VSSCanvas.canvas.height !== finalHeight) {
-                console.log(`VSSCanvas: Resizing canvas from ${window.VSSCanvas.canvas.width}x${window.VSSCanvas.canvas.height} to ${finalWidth}x${finalHeight} (container: ${newWidth}x${newHeight})`);
+            if (window.VSSCanvas.canvas.width !== finalWidth * dpr || window.VSSCanvas.canvas.height !== finalHeight * dpr) {
+                console.log(`VSSCanvas: Resizing canvas from ${window.VSSCanvas.canvas.width}x${window.VSSCanvas.canvas.height} to ${finalWidth * dpr}x${finalHeight * dpr} (container: ${newWidth}x${newHeight}, DPR: ${dpr})`);
                 
-                window.VSSCanvas.canvas.width = finalWidth;
-                window.VSSCanvas.canvas.height = finalHeight;
+                // Set actual canvas size in memory (scaled for high DPI)
+                window.VSSCanvas.canvas.width = finalWidth * dpr;
+                window.VSSCanvas.canvas.height = finalHeight * dpr;
+                
+                // Set display size (CSS pixels)
+                window.VSSCanvas.canvas.style.width = finalWidth + 'px';
+                window.VSSCanvas.canvas.style.height = finalHeight + 'px';
+                
+                // Scale the drawing context to match device pixel ratio
+                window.VSSCanvas.ctx.scale(dpr, dpr);
                 
                 // Restore drawing properties after resize (they get reset when canvas dimensions change)
                 if (window.VSSCanvas.ctx) {
@@ -894,6 +1542,133 @@
             } else {
                 console.error('VSSCanvas: Cannot add drawing event listeners - canvas not initialized');
                 throw new Error('Canvas not initialized before setting up event listeners');
+            }
+            
+            // Settings panel event listeners
+            const settingsToggle = document.getElementById('settings-toggle');
+            const settingsPanel = document.getElementById('settings-panel');
+            const closeSettings = document.getElementById('close-settings');
+            
+            if (settingsToggle && settingsPanel) {
+                settingsToggle.addEventListener('click', function() {
+                    settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'block' : 'none';
+                });
+            }
+            
+            if (closeSettings && settingsPanel) {
+                closeSettings.addEventListener('click', function() {
+                    settingsPanel.style.display = 'none';
+                });
+            }
+            
+            // Brush size control
+            const brushSizeSlider = document.getElementById('brush-size');
+            const brushSizeValue = document.getElementById('brush-size-value');
+            if (brushSizeSlider && brushSizeValue) {
+                brushSizeSlider.addEventListener('input', function() {
+                    window.VSSCanvas.settings.brushSize = parseInt(this.value);
+                    brushSizeValue.textContent = this.value;
+                });
+            }
+            
+            // Opacity control
+            const opacitySlider = document.getElementById('opacity');
+            const opacityValue = document.getElementById('opacity-value');
+            if (opacitySlider && opacityValue) {
+                opacitySlider.addEventListener('input', function() {
+                    window.VSSCanvas.settings.opacity = parseInt(this.value) / 100;
+                    opacityValue.textContent = this.value;
+                });
+            }
+            
+            // Color picker
+            const colorPicker = document.getElementById('color-picker');
+            if (colorPicker) {
+                colorPicker.addEventListener('change', function() {
+                    window.VSSCanvas.settings.color = this.value;
+                });
+            }
+            
+            // Color presets
+            const colorPresets = document.querySelectorAll('.color-preset');
+            colorPresets.forEach(preset => {
+                preset.addEventListener('click', function() {
+                    const color = this.dataset.color;
+                    window.VSSCanvas.settings.color = color;
+                    if (colorPicker) colorPicker.value = color;
+                });
+            });
+            
+            // Pressure sensitivity toggle
+            const pressureSensitivity = document.getElementById('pressure-sensitivity');
+            if (pressureSensitivity) {
+                pressureSensitivity.addEventListener('change', function() {
+                    window.VSSCanvas.settings.pressureSensitivity = this.checked;
+                });
+            }
+            
+            // Smoothing control
+            const smoothingSlider = document.getElementById('smoothing');
+            const smoothingValue = document.getElementById('smoothing-value');
+            if (smoothingSlider && smoothingValue) {
+                smoothingSlider.addEventListener('input', function() {
+                    window.VSSCanvas.settings.smoothing = parseInt(this.value);
+                    smoothingValue.textContent = this.value;
+                });
+            }
+            
+            // Generate code button
+            const generateCodeBtn = document.getElementById('generate-code');
+            const codePanel = document.getElementById('code-panel');
+            if (generateCodeBtn && codePanel) {
+                generateCodeBtn.addEventListener('click', function() {
+                    generateCode();
+                    codePanel.style.display = codePanel.style.display === 'none' ? 'block' : 'none';
+                });
+            }
+            
+            // Close code panel
+            const closeCodePanel = document.getElementById('close-code-panel');
+            if (closeCodePanel && codePanel) {
+                closeCodePanel.addEventListener('click', function() {
+                    codePanel.style.display = 'none';
+                });
+            }
+            
+            // Copy code functionality
+            const copyCodeBtn = document.getElementById('copy-code');
+            const refreshCodeBtn = document.getElementById('refresh-code');
+            const codeOutput = document.getElementById('code-output');
+            
+            if (copyCodeBtn && codeOutput) {
+                copyCodeBtn.addEventListener('click', function() {
+                    codeOutput.select();
+                    document.execCommand('copy');
+                    
+                    // Visual feedback
+                    const originalText = this.textContent;
+                    this.textContent = 'Copied!';
+                    this.style.background = '#28a745';
+                    
+                    setTimeout(() => {
+                        this.textContent = originalText;
+                        this.style.background = '#007acc';
+                    }, 1000);
+                });
+            }
+            
+            if (refreshCodeBtn) {
+                refreshCodeBtn.addEventListener('click', function() {
+                    generateCode();
+                });
+            }
+            
+            // Language selector change
+            const languageSelector = document.getElementById('code-language');
+            if (languageSelector) {
+                languageSelector.addEventListener('change', function() {
+                    generateCode();
+                });
             }
             
             console.log('VSSCanvas: Event listeners setup completed');
@@ -976,16 +1751,25 @@
             window.VSSCanvas.isDrawing = true;
             [window.VSSCanvas.lastX, window.VSSCanvas.lastY] = getMousePos(e);
             
-            // Start new path
-            window.VSSCanvas.ctx.beginPath();
-            window.VSSCanvas.ctx.moveTo(window.VSSCanvas.lastX, window.VSSCanvas.lastY);
+            // Get pressure information
+            const pressure = getPressureFromEvent(e);
+            
+            // Use enhanced tools system
+            if (window.VSSCanvas.tools && window.VSSCanvas.tools[window.VSSCanvas.currentTool]) {
+                window.VSSCanvas.tools[window.VSSCanvas.currentTool].start(window.VSSCanvas.lastX, window.VSSCanvas.lastY, pressure);
+            } else {
+                // Fallback to basic drawing
+                window.VSSCanvas.ctx.beginPath();
+                window.VSSCanvas.ctx.moveTo(window.VSSCanvas.lastX, window.VSSCanvas.lastY);
+            }
             
             sendMessage({
                 command: 'drawingStarted',
                 data: { 
                     tool: window.VSSCanvas.currentTool,
                     x: window.VSSCanvas.lastX, 
-                    y: window.VSSCanvas.lastY 
+                    y: window.VSSCanvas.lastY,
+                    pressure: pressure
                 }
             });
         }
@@ -994,18 +1778,25 @@
             if (!window.VSSCanvas.isDrawing) return;
             
             const [currentX, currentY] = getMousePos(e);
+            const pressure = getPressureFromEvent(e);
             
-            if (window.VSSCanvas.currentTool === 'pen') {
-                window.VSSCanvas.ctx.globalCompositeOperation = 'source-over';
-                window.VSSCanvas.ctx.strokeStyle = '#000000';
-                window.VSSCanvas.ctx.lineWidth = 2;
-            } else if (window.VSSCanvas.currentTool === 'eraser') {
-                window.VSSCanvas.ctx.globalCompositeOperation = 'destination-out';
-                window.VSSCanvas.ctx.lineWidth = 10;
+            // Use enhanced tools system
+            if (window.VSSCanvas.tools && window.VSSCanvas.tools[window.VSSCanvas.currentTool]) {
+                window.VSSCanvas.tools[window.VSSCanvas.currentTool].draw(currentX, currentY, pressure);
+            } else {
+                // Fallback to basic drawing
+                if (window.VSSCanvas.currentTool === 'pen') {
+                    window.VSSCanvas.ctx.globalCompositeOperation = 'source-over';
+                    window.VSSCanvas.ctx.strokeStyle = window.VSSCanvas.settings.color;
+                    window.VSSCanvas.ctx.lineWidth = window.VSSCanvas.settings.brushSize;
+                } else if (window.VSSCanvas.currentTool === 'eraser') {
+                    window.VSSCanvas.ctx.globalCompositeOperation = 'destination-out';
+                    window.VSSCanvas.ctx.lineWidth = window.VSSCanvas.settings.brushSize * 2;
+                }
+                
+                window.VSSCanvas.ctx.lineTo(currentX, currentY);
+                window.VSSCanvas.ctx.stroke();
             }
-            
-            window.VSSCanvas.ctx.lineTo(currentX, currentY);
-            window.VSSCanvas.ctx.stroke();
             
             [window.VSSCanvas.lastX, window.VSSCanvas.lastY] = [currentX, currentY];
             
@@ -1051,6 +1842,8 @@
         
         function getMousePos(e) {
             const rect = window.VSSCanvas.canvas.getBoundingClientRect();
+            // No need to scale by DPR here since we're working in CSS pixels
+            // The scaling is handled by the context.scale() in resizeCanvas
             return [
                 e.clientX - rect.left,
                 e.clientY - rect.top
