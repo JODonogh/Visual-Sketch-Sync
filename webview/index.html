@@ -138,8 +138,8 @@
             color: #999;
         }
 
-        /* Hide canvas container when loading */
-        .loading-screen ~ #canvas-container {
+        /* Hide canvas container when loading screen is visible */
+        .loading-screen:not([style*="display: none"]) ~ #canvas-container {
             display: none;
         }
         
@@ -289,11 +289,53 @@
         <canvas id="drawing-canvas"></canvas>
     </div>
 
-    <!-- Load Error Recovery Manager -->
-    <script src="error-recovery-manager.js"></script>
+    <!-- Error Recovery Manager and Notification System are loaded inline to avoid CSP issues -->
     
-    <!-- Load Error Notification System -->
-    <script src="error-notification-system.js"></script>
+    <script>
+        // Simple inline error recovery system to avoid external script CSP issues
+        (function() {
+            'use strict';
+            
+            // Simple error recovery for VS Code API issues
+            window.handleVsCodeApiError = function(error) {
+                console.log('Handling VS Code API error:', error.message);
+                
+                // If the error is about API already being acquired, use existing instance
+                if (error.message.includes('already been acquired') && window.vscodeApi) {
+                    console.log('Using existing VS Code API instance');
+                    if (window.VSSCanvas) {
+                        window.VSSCanvas.vscode = window.vscodeApi;
+                    }
+                    return true;
+                }
+                
+                return false;
+            };
+            
+            // Enhanced error notification system
+            window.ErrorNotificationSystem = function() {
+                this.showEnhancedError = function(errorType, error, options = {}) {
+                    console.log(`Enhanced error notification: ${errorType}`, error.message);
+                    
+                    // Try to handle VS Code API errors automatically
+                    if (errorType === 'VSCODE_API_ERROR' || error.message.includes('already been acquired')) {
+                        const handled = window.handleVsCodeApiError(error);
+                        if (handled) {
+                            console.log('VS Code API error handled automatically');
+                            return;
+                        }
+                    }
+                    
+                    // Fall back to standard error display
+                    if (window.showError) {
+                        window.showError(error.message, error.stack);
+                    }
+                };
+            };
+            
+            console.log('Inline error recovery system loaded');
+        })();
+    </script>
     
     <script>
         // IIFE wrapper to create local scope and prevent variable conflicts
@@ -435,7 +477,15 @@
                 
             } catch (apiError) {
                 console.error('VSSCanvas: Error acquiring VS Code API:', apiError);
-                window.VSSCanvas.vscode = window.vscodeApi || null;
+                
+                // Try to handle VS Code API error automatically
+                if (window.handleVsCodeApiError && window.handleVsCodeApiError(apiError)) {
+                    console.log('VSSCanvas: VS Code API error handled, continuing with existing instance');
+                    window.VSSCanvas.vscode = window.vscodeApi || null;
+                } else {
+                    console.warn('VSSCanvas: Could not recover from VS Code API error, continuing without API');
+                    window.VSSCanvas.vscode = null;
+                }
             }
         
         // Initialize DOM element references in namespace with existence checks
@@ -532,17 +582,32 @@
             if (window.VSSCanvas.loadingScreen) {
                 window.VSSCanvas.loadingScreen.style.display = 'none';
             }
+            
+            // Explicitly show the canvas container since CSS sibling selector still applies
+            const canvasContainer = document.getElementById('canvas-container');
+            if (canvasContainer) {
+                canvasContainer.style.display = 'flex';
+                console.log('VSSCanvas: Canvas container shown');
+            }
+            
+            // Ensure canvas is properly sized after showing container
+            setTimeout(() => {
+                resizeCanvas();
+            }, 100);
+            
             window.VSSCanvas.hasInitialized = true;
             
             // Send ready message to extension
-            window.VSSCanvas.vscode.postMessage({
-                command: 'canvasReady',
-                data: {
-                    timestamp: new Date().toISOString(),
-                    width: window.VSSCanvas.canvas ? window.VSSCanvas.canvas.width : 0,
-                    height: window.VSSCanvas.canvas ? window.VSSCanvas.canvas.height : 0
-                }
-            });
+            if (window.VSSCanvas.vscode) {
+                window.VSSCanvas.vscode.postMessage({
+                    command: 'canvasReady',
+                    data: {
+                        timestamp: new Date().toISOString(),
+                        width: window.VSSCanvas.canvas ? window.VSSCanvas.canvas.width : 0,
+                        height: window.VSSCanvas.canvas ? window.VSSCanvas.canvas.height : 0
+                    }
+                });
+            }
         }
         
         // Initialize canvas when DOM is loaded
@@ -568,10 +633,20 @@
         window.addEventListener('error', function(e) {
             const error = e.error || new Error(e.message);
             
+            // Check if this is a VS Code API error
+            if (error.message && error.message.includes('already been acquired')) {
+                console.log('Global error handler: VS Code API error detected');
+                if (window.handleVsCodeApiError && window.handleVsCodeApiError(error)) {
+                    console.log('Global error handler: VS Code API error handled');
+                    return; // Don't show error screen if handled
+                }
+            }
+            
             if (!window.VSSCanvas.hasInitialized) {
                 // Use enhanced error notification system if available
-                if (window.errorNotificationSystem) {
-                    window.errorNotificationSystem.showEnhancedError('UNKNOWN', error, {
+                if (window.ErrorNotificationSystem) {
+                    const notificationSystem = new window.ErrorNotificationSystem();
+                    notificationSystem.showEnhancedError('UNKNOWN', error, {
                         filename: e.filename,
                         lineno: e.lineno,
                         colno: e.colno,
@@ -597,8 +672,9 @@
                 }
                 
                 // Show user-friendly notification
-                if (window.errorNotificationSystem) {
-                    window.errorNotificationSystem.showEnhancedError('UNKNOWN', error, {
+                if (window.ErrorNotificationSystem) {
+                    const notificationSystem = new window.ErrorNotificationSystem();
+                    notificationSystem.showEnhancedError('UNKNOWN', error, {
                         showNotification: true,
                         context: 'runtime_error'
                     });
@@ -609,10 +685,20 @@
         window.addEventListener('unhandledrejection', function(e) {
             const error = e.reason instanceof Error ? e.reason : new Error(e.reason ? e.reason.toString() : 'Unknown promise rejection');
             
+            // Check if this is a VS Code API error
+            if (error.message && error.message.includes('already been acquired')) {
+                console.log('Unhandled rejection: VS Code API error detected');
+                if (window.handleVsCodeApiError && window.handleVsCodeApiError(error)) {
+                    console.log('Unhandled rejection: VS Code API error handled');
+                    return; // Don't show error screen if handled
+                }
+            }
+            
             if (!window.VSSCanvas.hasInitialized) {
                 // Use enhanced error notification system if available
-                if (window.errorNotificationSystem) {
-                    window.errorNotificationSystem.showEnhancedError('UNKNOWN', error, {
+                if (window.ErrorNotificationSystem) {
+                    const notificationSystem = new window.ErrorNotificationSystem();
+                    notificationSystem.showEnhancedError('UNKNOWN', error, {
                         context: 'unhandled_promise_rejection'
                     });
                 } else {
@@ -633,8 +719,9 @@
                 }
                 
                 // Show user-friendly notification
-                if (window.errorNotificationSystem) {
-                    window.errorNotificationSystem.showEnhancedError('UNKNOWN', error, {
+                if (window.ErrorNotificationSystem) {
+                    const notificationSystem = new window.ErrorNotificationSystem();
+                    notificationSystem.showEnhancedError('UNKNOWN', error, {
                         showNotification: true,
                         context: 'unhandled_promise_rejection'
                     });
@@ -741,12 +828,16 @@
             const newWidth = container.clientWidth;
             const newHeight = container.clientHeight - statusHeight;
             
+            // Ensure we have valid dimensions (avoid 0x0 canvas)
+            const finalWidth = Math.max(newWidth, 300);
+            const finalHeight = Math.max(newHeight, 200);
+            
             // Only resize if dimensions have changed to avoid unnecessary redraws
-            if (window.VSSCanvas.canvas.width !== newWidth || window.VSSCanvas.canvas.height !== newHeight) {
-                console.log(`VSSCanvas: Resizing canvas from ${window.VSSCanvas.canvas.width}x${window.VSSCanvas.canvas.height} to ${newWidth}x${newHeight}`);
+            if (window.VSSCanvas.canvas.width !== finalWidth || window.VSSCanvas.canvas.height !== finalHeight) {
+                console.log(`VSSCanvas: Resizing canvas from ${window.VSSCanvas.canvas.width}x${window.VSSCanvas.canvas.height} to ${finalWidth}x${finalHeight} (container: ${newWidth}x${newHeight})`);
                 
-                window.VSSCanvas.canvas.width = newWidth;
-                window.VSSCanvas.canvas.height = newHeight;
+                window.VSSCanvas.canvas.width = finalWidth;
+                window.VSSCanvas.canvas.height = finalHeight;
                 
                 // Restore drawing properties after resize (they get reset when canvas dimensions change)
                 if (window.VSSCanvas.ctx) {

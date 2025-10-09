@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VS Code API Fix Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 20px;
+            background: #1e1e1e;
+            color: #cccccc;
+        }
+        
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .test-result.success {
+            background: #1e3a1e;
+            border: 1px solid #28a745;
+            color: #90ee90;
+        }
+        
+        .test-result.error {
+            background: #3a1e1e;
+            border: 1px solid #dc3545;
+            color: #ffb3b3;
+        }
+        
+        .test-result.info {
+            background: #1e2a3a;
+            border: 1px solid #007acc;
+            color: #87ceeb;
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #2d2d2d;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        
+        .test-section h3 {
+            margin-top: 0;
+            color: #ffffff;
+        }
+        
+        button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background: #005a9e;
+        }
+        
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+        
+        #console-output {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>VS Code API Fix Test</h1>
+        <p>This test verifies that the webview initialization fix properly handles the VS Code API singleton pattern and prevents variable redeclaration errors.</p>
+        
+        <div class="test-section">
+            <h3>Test Controls</h3>
+            <button onclick="runVsCodeApiTest()">Test VS Code API Singleton</button>
+            <button onclick="runVariableScopingTest()">Test Variable Scoping</button>
+            <button onclick="runAllTests()">Run All Tests</button>
+            <button onclick="clearConsole()">Clear Console</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>Test Results</h3>
+            <div id="test-results"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Console Output</h3>
+            <div id="console-output"></div>
+        </div>
+    </div>
+
+    <script src="vscode-api-fix-test.js"></script>
+    
+    <script>
+        // Capture console output for display
+        const consoleOutput = document.getElementById('console-output');
+        const testResults = document.getElementById('test-results');
+        
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        const originalConsoleWarn = console.warn;
+        
+        function addToConsole(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'warn' ? '⚠️' : 'ℹ️';
+            consoleOutput.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            addToConsole(args.join(' '), 'log');
+            originalConsoleLog.apply(console, args);
+        };
+        
+        console.error = function(...args) {
+            addToConsole(args.join(' '), 'error');
+            originalConsoleError.apply(console, args);
+        };
+        
+        console.warn = function(...args) {
+            addToConsole(args.join(' '), 'warn');
+            originalConsoleWarn.apply(console, args);
+        };
+        
+        function addTestResult(message, type = 'info') {
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${type}`;
+            resultDiv.textContent = message;
+            testResults.appendChild(resultDiv);
+        }
+        
+        function clearResults() {
+            testResults.innerHTML = '';
+        }
+        
+        function clearConsole() {
+            consoleOutput.textContent = '';
+        }
+        
+        async function runVsCodeApiTest() {
+            clearResults();
+            addTestResult('Running VS Code API Singleton Test...', 'info');
+            
+            try {
+                const result = await testVsCodeApiSingleton();
+                
+                if (result.success) {
+                    addTestResult(`✅ VS Code API Test PASSED: ${result.message}`, 'success');
+                    addTestResult(`API was called ${result.apiCallCount} time(s)`, 'info');
+                } else {
+                    addTestResult(`❌ VS Code API Test FAILED: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                addTestResult(`❌ VS Code API Test ERROR: ${error.message}`, 'error');
+            }
+        }
+        
+        async function runVariableScopingTest() {
+            clearResults();
+            addTestResult('Running Variable Scoping Test...', 'info');
+            
+            try {
+                const result = await testVariableScoping();
+                
+                if (result.success) {
+                    addTestResult(`✅ Variable Scoping Test PASSED: ${result.message}`, 'success');
+                    result.results.forEach(res => {
+                        addTestResult(`  - ${res}`, 'info');
+                    });
+                } else {
+                    addTestResult(`❌ Variable Scoping Test FAILED: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                addTestResult(`❌ Variable Scoping Test ERROR: ${error.message}`, 'error');
+            }
+        }
+        
+        async function runAllTests() {
+            clearResults();
+            addTestResult('Running All Tests...', 'info');
+            
+            try {
+                const results = await window.runAllTests();
+                
+                if (results.allPassed) {
+                    addTestResult('🎉 All Tests PASSED!', 'success');
+                } else {
+                    addTestResult('⚠️ Some Tests FAILED', 'error');
+                }
+                
+                addTestResult(`Summary: ${results.summary.passed}/${results.summary.total} tests passed`, 'info');
+                
+                Object.entries(results.results).forEach(([testName, result]) => {
+                    const status = result.success ? '✅ PASS' : '❌ FAIL';
+                    const message = result.message || result.error;
+                    addTestResult(`${status} ${testName}: ${message}`, result.success ? 'success' : 'error');
+                });
+                
+            } catch (error) {
+                addTestResult(`❌ Test Suite ERROR: ${error.message}`, 'error');
+            }
+        }
+        
+        // Auto-run tests on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            addTestResult('Test page loaded. Click buttons above to run tests.', 'info');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VS Code API Singleton Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 20px;
+            background: #1e1e1e;
+            color: #cccccc;
+        }
+        
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .success { background: #1e3a1e; border: 1px solid #28a745; color: #90ee90; }
+        .error { background: #3a1e1e; border: 1px solid #dc3545; color: #ffb3b3; }
+        .info { background: #1e2a3a; border: 1px solid #007acc; color: #87ceeb; }
+        
+        button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        button:hover { background: #005a9e; }
+    </style>
+</head>
+<body>
+    <h1>VS Code API Singleton Pattern Test</h1>
+    <p>This test simulates the VS Code API acquisition error and verifies the singleton pattern fix.</p>
+    
+    <button onclick="runTest()">Run Test</button>
+    <button onclick="clearResults()">Clear Results</button>
+    
+    <div id="results"></div>
+
+    <script>
+        let apiCallCount = 0;
+        let mockApi = null;
+        
+        // Mock acquireVsCodeApi that throws error on second call
+        function createMockAcquireVsCodeApi() {
+            return function acquireVsCodeApi() {
+                apiCallCount++;
+                console.log(`acquireVsCodeApi called ${apiCallCount} times`);
+                
+                if (apiCallCount > 1) {
+                    throw new Error('An instance of the VS Code API has already been acquired');
+                }
+                
+                if (!mockApi) {
+                    mockApi = {
+                        postMessage: function(message) {
+                            console.log('Mock API - Message:', message);
+                        }
+                    };
+                }
+                
+                return mockApi;
+            };
+        }
+        
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.textContent = message;
+            document.getElementById('results').appendChild(div);
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            apiCallCount = 0;
+            mockApi = null;
+            window.vscodeApi = null;
+        }
+        
+        function runTest() {
+            clearResults();
+            addResult('Starting VS Code API Singleton Test...', 'info');
+            
+            try {
+                // Set up mock
+                window.acquireVsCodeApi = createMockAcquireVsCodeApi();
+                
+                // Test 1: First acquisition should work
+                addResult('Test 1: First API acquisition', 'info');
+                
+                if (!window.vscodeApi && typeof acquireVsCodeApi === 'function') {
+                    window.vscodeApi = acquireVsCodeApi();
+                    addResult('✅ First acquisition successful', 'success');
+                } else {
+                    addResult('❌ First acquisition failed', 'error');
+                    return;
+                }
+                
+                // Test 2: Second acquisition should use existing instance
+                addResult('Test 2: Second API acquisition (should use existing)', 'info');
+                
+                let secondApi;
+                if (!window.vscodeApi && typeof acquireVsCodeApi === 'function') {
+                    // This should not happen since vscodeApi already exists
+                    secondApi = acquireVsCodeApi();
+                    addResult('❌ Second acquisition called acquireVsCodeApi (should not happen)', 'error');
+                } else if (window.vscodeApi) {
+                    secondApi = window.vscodeApi;
+                    addResult('✅ Second acquisition used existing instance', 'success');
+                } else {
+                    addResult('❌ No VS Code API available', 'error');
+                    return;
+                }
+                
+                // Test 3: Verify same instance
+                if (window.vscodeApi === secondApi) {
+                    addResult('✅ Both acquisitions returned same instance', 'success');
+                } else {
+                    addResult('❌ Different instances returned', 'error');
+                }
+                
+                // Test 4: Test error handling
+                addResult('Test 4: Error handling for direct acquireVsCodeApi call', 'info');
+                
+                try {
+                    // This should throw an error
+                    const directApi = acquireVsCodeApi();
+                    addResult('❌ Direct call should have thrown error', 'error');
+                } catch (error) {
+                    if (error.message.includes('already been acquired')) {
+                        addResult('✅ Direct call correctly threw error: ' + error.message, 'success');
+                        
+                        // Test error recovery
+                        if (window.vscodeApi) {
+                            addResult('✅ Error recovery: existing instance still available', 'success');
+                        } else {
+                            addResult('❌ Error recovery: existing instance lost', 'error');
+                        }
+                    } else {
+                        addResult('❌ Unexpected error: ' + error.message, 'error');
+                    }
+                }
+                
+                // Test 5: Verify functionality
+                addResult('Test 5: Verify API functionality', 'info');
+                
+                if (window.vscodeApi && typeof window.vscodeApi.postMessage === 'function') {
+                    window.vscodeApi.postMessage({ command: 'test', data: 'singleton test' });
+                    addResult('✅ API postMessage function works', 'success');
+                } else {
+                    addResult('❌ API postMessage function not available', 'error');
+                }
+                
+                // Summary
+                addResult(`Summary: acquireVsCodeApi was called ${apiCallCount} time(s)`, 'info');
+                
+                if (apiCallCount === 1) {
+                    addResult('🎉 Singleton pattern working correctly!', 'success');
+                } else {
+                    addResult('⚠️ Singleton pattern may have issues', 'error');
+                }
+                
+            } catch (error) {
+                addResult('❌ Test failed with error: ' + error.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

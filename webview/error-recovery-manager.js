@@ -108,15 +108,27 @@
                 }
             });
             
-            // VS Code API not available
+            // VS Code API not available or already acquired
             this.recoveryStrategies.set('VSCODE_API_ERROR', {
-                strategy: 'fallback_mode',
-                message: 'VS Code API unavailable. Running in standalone mode...',
+                strategy: 'use_existing_api',
+                message: 'VS Code API issue detected. Using existing API instance...',
                 autoRecover: true,
                 maxRetries: 1,
                 action: async () => {
+                    console.log('ErrorRecoveryManager: Handling VS Code API error');
+                    
+                    // If API was already acquired, use the existing instance
+                    if (window.vscodeApi) {
+                        console.log('ErrorRecoveryManager: Using existing VS Code API instance');
+                        if (this.canvasManager) {
+                            this.canvasManager.vscode = window.vscodeApi;
+                            return await this.canvasManager.init();
+                        }
+                        return true;
+                    }
+                    
+                    // Otherwise fall back to standalone mode
                     console.log('ErrorRecoveryManager: Falling back to standalone mode');
-                    // Initialize without VS Code API dependency
                     return await this.initializeStandaloneMode();
                 }
             });
@@ -270,7 +282,9 @@
                 return 'TIMEOUT';
             }
             
-            if (message.includes('vscode') || message.includes('acquirevscodapi')) {
+            if (message.includes('vscode') || message.includes('acquirevscodapi') || 
+                message.includes('instance of the vs code api has already been acquired') ||
+                message.includes('already been acquired')) {
                 return 'VSCODE_API_ERROR';
             }
             
@@ -369,13 +383,30 @@
             try {
                 console.log('ErrorRecoveryManager: Initializing standalone mode');
                 
-                // Mock VS Code API for standalone operation
-                if (!window.acquireVsCodeApi) {
-                    window.acquireVsCodeApi = () => ({
+                // Mock VS Code API for standalone operation using singleton pattern
+                if (!window.vscodeApi) {
+                    window.vscodeApi = {
                         postMessage: (message) => {
                             console.log('Mock VS Code API - Message:', message);
+                        },
+                        setState: (state) => {
+                            console.log('Mock VS Code API - State set:', state);
+                        },
+                        getState: () => {
+                            return {};
                         }
-                    });
+                    };
+                    console.log('ErrorRecoveryManager: Mock VS Code API created');
+                }
+                
+                // Mock acquireVsCodeApi function to return existing instance
+                if (!window.acquireVsCodeApi) {
+                    window.acquireVsCodeApi = () => {
+                        if (window.vscodeApi) {
+                            return window.vscodeApi;
+                        }
+                        throw new Error('VS Code API not available in standalone mode');
+                    };
                 }
                 
                 // Initialize canvas manager in standalone mode
