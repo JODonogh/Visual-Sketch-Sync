@@ -87,9 +87,193 @@
         .connection-status.disconnected {
             color: #dc3545;
         }
+        
+        /* Loading Screen Styles */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1e1e1e;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: #cccccc;
+        }
+
+        .loading-spinner {
+            margin-bottom: 20px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #333;
+            border-top: 4px solid #007acc;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            text-align: center;
+        }
+
+        .loading-text h3 {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .loading-text p {
+            margin: 0;
+            font-size: 14px;
+            color: #999;
+        }
+
+        /* Hide canvas container when loading */
+        .loading-screen ~ #canvas-container {
+            display: none;
+        }
+        
+        /* Error Screen Styles */
+        .error-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1e1e1e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9998;
+            color: #cccccc;
+        }
+
+        .error-content {
+            max-width: 500px;
+            padding: 30px;
+            background: #2d2d2d;
+            border-radius: 8px;
+            border: 1px solid #444;
+            text-align: center;
+        }
+
+        .error-content h2 {
+            color: #f48771;
+            margin: 0 0 20px 0;
+            font-size: 24px;
+        }
+
+        .error-message {
+            background: #3c1e1e;
+            border: 1px solid #d32f2f;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #ffcdd2;
+            text-align: left;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .error-actions {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .retry-button, .report-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .retry-button {
+            background: #007acc;
+            color: white;
+        }
+
+        .retry-button:hover {
+            background: #005a9e;
+        }
+
+        .report-button {
+            background: #444;
+            color: #cccccc;
+        }
+
+        .report-button:hover {
+            background: #555;
+        }
+
+        .error-details {
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .error-details summary {
+            cursor: pointer;
+            color: #999;
+            font-size: 12px;
+        }
+
+        .error-details pre {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 11px;
+            color: #ccc;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+
+        /* Hide canvas container when error is shown */
+        .error-screen:not([style*="display: none"]) ~ #canvas-container {
+            display: none;
+        }
     </style>
 </head>
 <body>
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+        </div>
+        <div class="loading-text">
+            <h3>Loading Drawing Canvas...</h3>
+            <p id="loading-status">Initializing components...</p>
+        </div>
+    </div>
+    
+    <div id="error-screen" class="error-screen" style="display: none;">
+        <div class="error-content">
+            <h2>⚠️ Canvas Error</h2>
+            <div id="error-message" class="error-message"></div>
+            <div class="error-actions">
+                <button id="retry-button" class="retry-button">Retry</button>
+                <button id="report-button" class="report-button">Report Issue</button>
+            </div>
+            <details class="error-details">
+                <summary>Technical Details</summary>
+                <pre id="error-stack"></pre>
+            </details>
+        </div>
+    </div>
+    
     <div id="canvas-container">
         <div id="status">
             <span>VSS Drawing Canvas - Ready</span>
@@ -105,78 +289,523 @@
         <canvas id="drawing-canvas"></canvas>
     </div>
 
+    <!-- Load Error Recovery Manager -->
+    <script src="error-recovery-manager.js"></script>
+    
+    <!-- Load Error Notification System -->
+    <script src="error-notification-system.js"></script>
+    
     <script>
-        // Canvas and drawing state
-        let canvas, ctx;
-        let isDrawing = false;
-        let currentTool = 'pen';
-        let lastX = 0;
-        let lastY = 0;
+        // IIFE wrapper to create local scope and prevent variable conflicts
+        (function() {
+            'use strict';
+            
+            console.log('VSSCanvas: Starting initialization check...');
+            
+            // Check for existing VSSCanvas instance and cleanup if needed
+            if (typeof window.VSSCanvas !== 'undefined') {
+                console.log('VSSCanvas: Existing instance detected');
+                
+                if (window.VSSCanvas.initialized) {
+                    console.log('VSSCanvas: Previous instance was initialized, cleaning up...');
+                    try {
+                        window.VSSCanvas.cleanup();
+                    } catch (cleanupError) {
+                        console.warn('VSSCanvas: Error during cleanup of previous instance:', cleanupError);
+                        // Continue with reinitialization even if cleanup fails
+                    }
+                } else {
+                    console.log('VSSCanvas: Previous instance was not initialized, proceeding with setup...');
+                }
+            } else {
+                console.log('VSSCanvas: No existing instance found, creating new namespace...');
+            }
+            
+            // Create or reset VSSCanvas namespace to encapsulate all variables and functions
+            window.VSSCanvas = {
+                // Canvas and drawing state variables
+                canvas: null,
+                ctx: null,
+                isDrawing: false,
+                currentTool: 'pen',
+                lastX: 0,
+                lastY: 0,
+                hasInitialized: false,
+                initializationTimeout: null,
+                
+                // Connection monitoring variables
+                connectionCheckInterval: null,
+                lastMessageTime: Date.now(),
+                
+                // DOM element references
+                loadingScreen: null,
+                errorScreen: null,
+                loadingStatus: null,
+                
+                // VS Code API reference
+                vscode: null,
+                
+                // Initialization flag
+                initialized: false,
+                
+                // Instance creation timestamp for debugging
+                createdAt: new Date().toISOString(),
+                
+                // Instance ID for debugging reinitialization scenarios
+                instanceId: Math.random().toString(36).substr(2, 9)
+            };
+            
+            console.log('VSSCanvas: Namespace created/reset with instance ID:', window.VSSCanvas.instanceId);
+            
+            // Add init method to VSSCanvas namespace
+            window.VSSCanvas.init = function() {
+                console.log('VSSCanvas: Starting initialization for instance ID:', this.instanceId);
+                
+                try {
+                    updateLoadingStatus('Initializing canvas...');
+                    initializeCanvas();
+                    
+                    updateLoadingStatus('Setting up drawing tools...');
+                    setupEventListeners();
+                    
+                    updateLoadingStatus('Establishing connection...');
+                    setupMessagePassing();
+                    
+                    updateLoadingStatus('Canvas ready!');
+                    this.initialized = true;
+                    
+                    // Hide loading screen after a short delay
+                    setTimeout(function() {
+                        if (window.VSSCanvas.initializationTimeout) {
+                            clearTimeout(window.VSSCanvas.initializationTimeout);
+                            window.VSSCanvas.initializationTimeout = null;
+                        }
+                        hideLoadingScreen();
+                    }, 500);
+                    
+                    console.log('VSSCanvas: Initialization completed successfully');
+                    return true;
+                    
+                } catch (error) {
+                    console.error('VSSCanvas: Initialization failed:', error);
+                    showError('Initialization failed: ' + error.message, error.stack);
+                    return false;
+                }
+            };
+            
+            // Add cleanup method to VSSCanvas namespace
+            window.VSSCanvas.cleanup = function() {
+                console.log('VSSCanvas: Cleaning up instance ID:', this.instanceId);
+                
+                // Clear timeouts
+                if (this.initializationTimeout) {
+                    clearTimeout(this.initializationTimeout);
+                    this.initializationTimeout = null;
+                }
+                
+                if (this.connectionCheckInterval) {
+                    clearInterval(this.connectionCheckInterval);
+                    this.connectionCheckInterval = null;
+                }
+                
+                // Reset state
+                this.initialized = false;
+                this.hasInitialized = false;
+                this.canvas = null;
+                this.ctx = null;
+                this.isDrawing = false;
+                
+                console.log('VSSCanvas: Cleanup completed for instance ID:', this.instanceId);
+            };
+            
+            // Get VS Code API for message passing with singleton pattern
+            try {
+                // Check if VS Code API was already acquired globally
+                if (!window.vscodeApi && typeof acquireVsCodeApi === 'function') {
+                    window.vscodeApi = acquireVsCodeApi();
+                    console.log('VSSCanvas: VS Code API acquired successfully');
+                } else if (window.vscodeApi) {
+                    console.log('VSSCanvas: Using existing VS Code API instance');
+                } else {
+                    console.warn('VSSCanvas: acquireVsCodeApi function not available');
+                }
+                
+                // Always use the global instance
+                window.VSSCanvas.vscode = window.vscodeApi || null;
+                
+            } catch (apiError) {
+                console.error('VSSCanvas: Error acquiring VS Code API:', apiError);
+                window.VSSCanvas.vscode = window.vscodeApi || null;
+            }
         
-        // VS Code API for message passing
-        const vscode = acquireVsCodeApi();
+        // Initialize DOM element references in namespace with existence checks
+        function initializeDOMReferences() {
+            console.log('VSSCanvas: Initializing DOM element references...');
+            
+            window.VSSCanvas.loadingScreen = document.getElementById('loading-screen');
+            if (!window.VSSCanvas.loadingScreen) {
+                console.warn('VSSCanvas: Loading screen element not found');
+            }
+            
+            window.VSSCanvas.errorScreen = document.getElementById('error-screen');
+            if (!window.VSSCanvas.errorScreen) {
+                console.warn('VSSCanvas: Error screen element not found');
+            }
+            
+            window.VSSCanvas.loadingStatus = document.getElementById('loading-status');
+            if (!window.VSSCanvas.loadingStatus) {
+                console.warn('VSSCanvas: Loading status element not found');
+            }
+            
+            console.log('VSSCanvas: DOM references initialized');
+        }
+        
+        // Initialize DOM references
+        initializeDOMReferences();
+        
+        // Initialize error notification system
+        if (window.ErrorNotificationSystem && !window.errorNotificationSystem) {
+            window.errorNotificationSystem = new window.ErrorNotificationSystem();
+            console.log('VSSCanvas: Error notification system initialized');
+        }
+
+        function updateLoadingStatus(message) {
+            if (window.VSSCanvas.loadingStatus) {
+                window.VSSCanvas.loadingStatus.textContent = message;
+            }
+            console.log('VSS Loading:', message);
+        }
+
+        function showError(message, stack) {
+            console.error('VSSCanvas Error:', message, stack);
+            
+            // Check if error screen exists before trying to use it
+            if (window.VSSCanvas.errorScreen) {
+                const errorMessage = document.getElementById('error-message');
+                const errorStackElement = document.getElementById('error-stack');
+                
+                if (errorMessage) {
+                    errorMessage.textContent = message;
+                } else {
+                    console.warn('VSSCanvas: Error message element not found');
+                }
+                
+                if (errorStackElement && stack) {
+                    errorStackElement.textContent = stack;
+                } else if (stack) {
+                    console.warn('VSSCanvas: Error stack element not found');
+                }
+                
+                window.VSSCanvas.errorScreen.style.display = 'flex';
+            } else {
+                console.warn('VSSCanvas: Error screen element not available, cannot display error UI');
+                // Fallback: show alert if error screen is not available
+                alert('Canvas Error: ' + message);
+            }
+            
+            // Hide loading screen if it exists
+            if (window.VSSCanvas.loadingScreen) {
+                window.VSSCanvas.loadingScreen.style.display = 'none';
+            }
+
+            // Send error to extension if VS Code API is available
+            if (window.VSSCanvas.vscode) {
+                try {
+                    window.VSSCanvas.vscode.postMessage({
+                        command: 'error',
+                        data: {
+                            message: message,
+                            stack: stack,
+                            source: 'webview-initialization',
+                            instanceId: window.VSSCanvas.instanceId
+                        }
+                    });
+                } catch (postError) {
+                    console.error('VSSCanvas: Failed to send error message to extension:', postError);
+                }
+            } else {
+                console.warn('VSSCanvas: Cannot send error to extension - VS Code API not available');
+            }
+        }
+
+        function hideLoadingScreen() {
+            if (window.VSSCanvas.loadingScreen) {
+                window.VSSCanvas.loadingScreen.style.display = 'none';
+            }
+            window.VSSCanvas.hasInitialized = true;
+            
+            // Send ready message to extension
+            window.VSSCanvas.vscode.postMessage({
+                command: 'canvasReady',
+                data: {
+                    timestamp: new Date().toISOString(),
+                    width: window.VSSCanvas.canvas ? window.VSSCanvas.canvas.width : 0,
+                    height: window.VSSCanvas.canvas ? window.VSSCanvas.canvas.height : 0
+                }
+            });
+        }
         
         // Initialize canvas when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
-            initializeCanvas();
-            setupEventListeners();
-            setupMessagePassing();
-            updateStatus('Canvas initialized successfully');
+            updateLoadingStatus('Loading components...');
+            
+            // Set initialization timeout in namespace
+            window.VSSCanvas.initializationTimeout = setTimeout(function() {
+                if (!window.VSSCanvas.hasInitialized) {
+                    showError('Initialization timeout - Canvas failed to load within 10 seconds', null);
+                }
+            }, 10000);
+
+            // Use VSSCanvas namespace initialization
+            if (window.VSSCanvas) {
+                window.VSSCanvas.init();
+            } else {
+                showError('VSSCanvas namespace not found', null);
+            }
+        });
+
+        // Set up global error handlers
+        window.addEventListener('error', function(e) {
+            const error = e.error || new Error(e.message);
+            
+            if (!window.VSSCanvas.hasInitialized) {
+                // Use enhanced error notification system if available
+                if (window.errorNotificationSystem) {
+                    window.errorNotificationSystem.showEnhancedError('UNKNOWN', error, {
+                        filename: e.filename,
+                        lineno: e.lineno,
+                        colno: e.colno,
+                        context: 'global_error_handler'
+                    });
+                } else {
+                    // Fallback to basic error display
+                    showError('Initialization Error: ' + e.message, error.stack);
+                }
+            } else {
+                // Send to extension and show notification
+                if (window.VSSCanvas.vscode) {
+                    window.VSSCanvas.vscode.postMessage({
+                        command: 'error',
+                        data: {
+                            message: e.message,
+                            filename: e.filename,
+                            lineno: e.lineno,
+                            colno: e.colno,
+                            stack: error.stack
+                        }
+                    });
+                }
+                
+                // Show user-friendly notification
+                if (window.errorNotificationSystem) {
+                    window.errorNotificationSystem.showEnhancedError('UNKNOWN', error, {
+                        showNotification: true,
+                        context: 'runtime_error'
+                    });
+                }
+            }
+        });
+
+        window.addEventListener('unhandledrejection', function(e) {
+            const error = e.reason instanceof Error ? e.reason : new Error(e.reason ? e.reason.toString() : 'Unknown promise rejection');
+            
+            if (!window.VSSCanvas.hasInitialized) {
+                // Use enhanced error notification system if available
+                if (window.errorNotificationSystem) {
+                    window.errorNotificationSystem.showEnhancedError('UNKNOWN', error, {
+                        context: 'unhandled_promise_rejection'
+                    });
+                } else {
+                    // Fallback to basic error display
+                    showError('Unhandled Promise Rejection: ' + error.message, error.stack);
+                }
+            } else {
+                // Send to extension and show notification
+                if (window.VSSCanvas.vscode) {
+                    window.VSSCanvas.vscode.postMessage({
+                        command: 'error',
+                        data: {
+                            message: error.message,
+                            stack: error.stack,
+                            type: 'unhandled_promise_rejection'
+                        }
+                    });
+                }
+                
+                // Show user-friendly notification
+                if (window.errorNotificationSystem) {
+                    window.errorNotificationSystem.showEnhancedError('UNKNOWN', error, {
+                        showNotification: true,
+                        context: 'unhandled_promise_rejection'
+                    });
+                }
+            }
+        });
+
+        // Set up retry functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const retryButton = document.getElementById('retry-button');
+            const reportButton = document.getElementById('report-button');
+            
+            if (retryButton) {
+                retryButton.addEventListener('click', function() {
+                    // Try to reinitialize first, fallback to reload
+                    if (window.VSSCanvas && window.VSSCanvas.reinitialize) {
+                        const success = window.VSSCanvas.reinitialize();
+                        if (!success) {
+                            location.reload();
+                        }
+                    } else {
+                        location.reload();
+                    }
+                });
+            }
+            
+            if (reportButton) {
+                reportButton.addEventListener('click', function() {
+                    if (window.VSSCanvas.vscode) {
+                        window.VSSCanvas.vscode.postMessage({
+                            command: 'reportIssue',
+                            data: {
+                                source: 'webview-error-screen'
+                            }
+                        });
+                    }
+                });
+            }
         });
         
         function initializeCanvas() {
-            try {
-                canvas = document.getElementById('drawing-canvas');
-                ctx = canvas.getContext('2d');
+            console.log('VSSCanvas: Initializing canvas element...');
+            
+            // Check if canvas already exists and is valid
+            if (window.VSSCanvas.canvas && window.VSSCanvas.ctx) {
+                console.log('VSSCanvas: Canvas already initialized, checking validity...');
                 
-                // Set canvas size to fill container
-                resizeCanvas();
-                
-                // Set default drawing properties
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 2;
-                
-                updateStatus('Canvas ready for drawing');
-            } catch (error) {
-                updateStatus('Error initializing canvas: ' + error.message);
-                console.error('Canvas initialization error:', error);
+                // Verify the existing canvas is still in the DOM
+                if (document.contains(window.VSSCanvas.canvas)) {
+                    console.log('VSSCanvas: Existing canvas is valid, reusing...');
+                    resizeCanvas();
+                    return;
+                } else {
+                    console.log('VSSCanvas: Existing canvas is no longer in DOM, reinitializing...');
+                    window.VSSCanvas.canvas = null;
+                    window.VSSCanvas.ctx = null;
+                }
             }
+            
+            // Get canvas element
+            window.VSSCanvas.canvas = document.getElementById('drawing-canvas');
+            if (!window.VSSCanvas.canvas) {
+                throw new Error('Canvas element not found in DOM - ensure the HTML contains an element with id="drawing-canvas"');
+            }
+            
+            console.log('VSSCanvas: Canvas element found, getting 2D context...');
+
+            // Get 2D rendering context
+            window.VSSCanvas.ctx = window.VSSCanvas.canvas.getContext('2d');
+            if (!window.VSSCanvas.ctx) {
+                throw new Error('Failed to get 2D rendering context from canvas - browser may not support canvas');
+            }
+            
+            console.log('VSSCanvas: 2D context acquired, setting up canvas...');
+            
+            // Set canvas size to fill container
+            resizeCanvas();
+            
+            // Set default drawing properties
+            window.VSSCanvas.ctx.lineCap = 'round';
+            window.VSSCanvas.ctx.lineJoin = 'round';
+            window.VSSCanvas.ctx.strokeStyle = '#000000';
+            window.VSSCanvas.ctx.lineWidth = 2;
+            
+            console.log('VSSCanvas: Canvas initialization completed');
+            updateStatus('Canvas ready for drawing');
         }
         
         function resizeCanvas() {
-            const container = document.getElementById('canvas-container');
-            const statusHeight = document.getElementById('status').offsetHeight;
+            if (!window.VSSCanvas.canvas) {
+                console.warn('VSSCanvas: Cannot resize canvas - canvas not initialized');
+                return;
+            }
             
-            canvas.width = container.clientWidth;
-            canvas.height = container.clientHeight - statusHeight;
+            const container = document.getElementById('canvas-container');
+            if (!container) {
+                console.warn('VSSCanvas: Cannot resize canvas - container element not found');
+                return;
+            }
+            
+            const statusElement = document.getElementById('status');
+            const statusHeight = statusElement ? statusElement.offsetHeight : 0;
+            
+            const newWidth = container.clientWidth;
+            const newHeight = container.clientHeight - statusHeight;
+            
+            // Only resize if dimensions have changed to avoid unnecessary redraws
+            if (window.VSSCanvas.canvas.width !== newWidth || window.VSSCanvas.canvas.height !== newHeight) {
+                console.log(`VSSCanvas: Resizing canvas from ${window.VSSCanvas.canvas.width}x${window.VSSCanvas.canvas.height} to ${newWidth}x${newHeight}`);
+                
+                window.VSSCanvas.canvas.width = newWidth;
+                window.VSSCanvas.canvas.height = newHeight;
+                
+                // Restore drawing properties after resize (they get reset when canvas dimensions change)
+                if (window.VSSCanvas.ctx) {
+                    window.VSSCanvas.ctx.lineCap = 'round';
+                    window.VSSCanvas.ctx.lineJoin = 'round';
+                    window.VSSCanvas.ctx.strokeStyle = '#000000';
+                    window.VSSCanvas.ctx.lineWidth = 2;
+                }
+            }
         }
         
         function setupEventListeners() {
+            console.log('VSSCanvas: Setting up event listeners...');
+            
             // Window resize
             window.addEventListener('resize', resizeCanvas);
             
-            // Tool buttons
-            document.querySelectorAll('.tool-button[data-tool]').forEach(button => {
-                button.addEventListener('click', function() {
-                    selectTool(this.dataset.tool);
+            // Tool buttons with existence check
+            const toolButtons = document.querySelectorAll('.tool-button[data-tool]');
+            if (toolButtons.length > 0) {
+                toolButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        selectTool(this.dataset.tool);
+                    });
                 });
-            });
+                console.log(`VSSCanvas: Added event listeners to ${toolButtons.length} tool buttons`);
+            } else {
+                console.warn('VSSCanvas: No tool buttons found');
+            }
             
-            // Clear canvas button
-            document.getElementById('clear-canvas').addEventListener('click', clearCanvas);
+            // Clear canvas button with existence check
+            const clearButton = document.getElementById('clear-canvas');
+            if (clearButton) {
+                clearButton.addEventListener('click', clearCanvas);
+                console.log('VSSCanvas: Added event listener to clear button');
+            } else {
+                console.warn('VSSCanvas: Clear canvas button not found');
+            }
             
-            // Mouse events for drawing
-            canvas.addEventListener('mousedown', startDrawing);
-            canvas.addEventListener('mousemove', draw);
-            canvas.addEventListener('mouseup', stopDrawing);
-            canvas.addEventListener('mouseout', stopDrawing);
+            // Canvas drawing events with existence check
+            if (window.VSSCanvas.canvas) {
+                // Mouse events for drawing
+                window.VSSCanvas.canvas.addEventListener('mousedown', startDrawing);
+                window.VSSCanvas.canvas.addEventListener('mousemove', draw);
+                window.VSSCanvas.canvas.addEventListener('mouseup', stopDrawing);
+                window.VSSCanvas.canvas.addEventListener('mouseout', stopDrawing);
+                
+                // Touch events for mobile/tablet support
+                window.VSSCanvas.canvas.addEventListener('touchstart', handleTouch);
+                window.VSSCanvas.canvas.addEventListener('touchmove', handleTouch);
+                window.VSSCanvas.canvas.addEventListener('touchend', stopDrawing);
+                
+                console.log('VSSCanvas: Added drawing event listeners to canvas');
+            } else {
+                console.error('VSSCanvas: Cannot add drawing event listeners - canvas not initialized');
+                throw new Error('Canvas not initialized before setting up event listeners');
+            }
             
-            // Touch events for mobile/tablet support
-            canvas.addEventListener('touchstart', handleTouch);
-            canvas.addEventListener('touchmove', handleTouch);
-            canvas.addEventListener('touchend', stopDrawing);
+            console.log('VSSCanvas: Event listeners setup completed');
         }
         
         function setupMessagePassing() {
@@ -203,23 +832,36 @@
             sendMessage({
                 command: 'canvasReady',
                 data: {
-                    width: canvas.width,
-                    height: canvas.height
+                    width: window.VSSCanvas.canvas.width,
+                    height: window.VSSCanvas.canvas.height
                 }
             });
         }
         
         function sendMessage(message) {
             try {
-                vscode.postMessage(message);
+                // Check if VS Code API is available
+                if (!window.VSSCanvas.vscode) {
+                    console.warn('VSSCanvas: VS Code API not available, cannot send message:', message);
+                    return false;
+                }
+                
+                window.VSSCanvas.vscode.postMessage(message);
+                return true;
             } catch (error) {
-                console.error('Error sending message to extension:', error);
+                console.error('VSSCanvas: Error sending message to extension:', error);
                 updateStatus('Communication error with extension');
+                
+                // If we're not initialized yet, show error screen
+                if (!window.VSSCanvas.hasInitialized) {
+                    showError('Failed to communicate with VS Code extension: ' + error.message, error.stack);
+                }
+                return false;
             }
         }
         
         function selectTool(tool) {
-            currentTool = tool;
+            window.VSSCanvas.currentTool = tool;
             
             // Update button states
             document.querySelectorAll('.tool-button[data-tool]').forEach(button => {
@@ -228,7 +870,7 @@
             document.querySelector(`[data-tool="${tool}"]`).classList.add('active');
             
             // Update cursor
-            canvas.style.cursor = tool === 'eraser' ? 'grab' : 'crosshair';
+            window.VSSCanvas.canvas.style.cursor = tool === 'eraser' ? 'grab' : 'crosshair';
             
             updateStatus(`Selected tool: ${tool}`);
             
@@ -240,66 +882,66 @@
         }
         
         function startDrawing(e) {
-            isDrawing = true;
-            [lastX, lastY] = getMousePos(e);
+            window.VSSCanvas.isDrawing = true;
+            [window.VSSCanvas.lastX, window.VSSCanvas.lastY] = getMousePos(e);
             
             // Start new path
-            ctx.beginPath();
-            ctx.moveTo(lastX, lastY);
+            window.VSSCanvas.ctx.beginPath();
+            window.VSSCanvas.ctx.moveTo(window.VSSCanvas.lastX, window.VSSCanvas.lastY);
             
             sendMessage({
                 command: 'drawingStarted',
                 data: { 
-                    tool: currentTool,
-                    x: lastX, 
-                    y: lastY 
+                    tool: window.VSSCanvas.currentTool,
+                    x: window.VSSCanvas.lastX, 
+                    y: window.VSSCanvas.lastY 
                 }
             });
         }
         
         function draw(e) {
-            if (!isDrawing) return;
+            if (!window.VSSCanvas.isDrawing) return;
             
             const [currentX, currentY] = getMousePos(e);
             
-            if (currentTool === 'pen') {
-                ctx.globalCompositeOperation = 'source-over';
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 2;
-            } else if (currentTool === 'eraser') {
-                ctx.globalCompositeOperation = 'destination-out';
-                ctx.lineWidth = 10;
+            if (window.VSSCanvas.currentTool === 'pen') {
+                window.VSSCanvas.ctx.globalCompositeOperation = 'source-over';
+                window.VSSCanvas.ctx.strokeStyle = '#000000';
+                window.VSSCanvas.ctx.lineWidth = 2;
+            } else if (window.VSSCanvas.currentTool === 'eraser') {
+                window.VSSCanvas.ctx.globalCompositeOperation = 'destination-out';
+                window.VSSCanvas.ctx.lineWidth = 10;
             }
             
-            ctx.lineTo(currentX, currentY);
-            ctx.stroke();
+            window.VSSCanvas.ctx.lineTo(currentX, currentY);
+            window.VSSCanvas.ctx.stroke();
             
-            [lastX, lastY] = [currentX, currentY];
+            [window.VSSCanvas.lastX, window.VSSCanvas.lastY] = [currentX, currentY];
             
             // Send drawing data to extension (throttled)
             if (Math.random() < 0.1) { // Only send 10% of drawing events to avoid spam
                 sendMessage({
                     command: 'drawing',
                     data: {
-                        tool: currentTool,
+                        tool: window.VSSCanvas.currentTool,
                         x: currentX,
                         y: currentY,
-                        lastX: lastX,
-                        lastY: lastY
+                        lastX: window.VSSCanvas.lastX,
+                        lastY: window.VSSCanvas.lastY
                     }
                 });
             }
         }
         
         function stopDrawing() {
-            if (!isDrawing) return;
+            if (!window.VSSCanvas.isDrawing) return;
             
-            isDrawing = false;
-            ctx.beginPath(); // Reset path
+            window.VSSCanvas.isDrawing = false;
+            window.VSSCanvas.ctx.beginPath(); // Reset path
             
             sendMessage({
                 command: 'drawingEnded',
-                data: { tool: currentTool }
+                data: { tool: window.VSSCanvas.currentTool }
             });
         }
         
@@ -313,11 +955,11 @@
                 clientY: touch.clientY
             });
             
-            canvas.dispatchEvent(mouseEvent);
+            window.VSSCanvas.canvas.dispatchEvent(mouseEvent);
         }
         
         function getMousePos(e) {
-            const rect = canvas.getBoundingClientRect();
+            const rect = window.VSSCanvas.canvas.getBoundingClientRect();
             return [
                 e.clientX - rect.left,
                 e.clientY - rect.top
@@ -325,7 +967,7 @@
         }
         
         function clearCanvas() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            window.VSSCanvas.ctx.clearRect(0, 0, window.VSSCanvas.canvas.width, window.VSSCanvas.canvas.height);
             updateStatus('Canvas cleared');
             
             sendMessage({
@@ -346,29 +988,180 @@
             statusElement.className = `connection-status ${connected ? 'connected' : 'disconnected'}`;
         }
         
-        // Error handling
-        window.addEventListener('error', function(e) {
-            updateStatus('Error: ' + e.message);
-            sendMessage({
-                command: 'error',
-                data: {
-                    message: e.message,
-                    filename: e.filename,
-                    lineno: e.lineno
-                }
-            });
+        // Start connection monitoring after initialization
+        function startConnectionMonitoring() {
+            window.VSSCanvas.connectionCheckInterval = setInterval(function() {
+                const timeSinceLastMessage = Date.now() - window.VSSCanvas.lastMessageTime;
+                const isConnected = timeSinceLastMessage < 30000; // 30 seconds timeout
+                updateConnectionStatus(isConnected);
+            }, 5000);
+        }
+
+        // Listen for messages from extension to track connection
+        window.addEventListener('message', function(event) {
+            window.VSSCanvas.lastMessageTime = Date.now();
+            updateConnectionStatus(true);
+        });
+
+        // Start monitoring once canvas is ready
+        setTimeout(function() {
+            if (window.VSSCanvas.hasInitialized) {
+                startConnectionMonitoring();
+            }
+        }, 1000);
+
+        // Cleanup on unload
+        window.addEventListener('beforeunload', function() {
+            if (window.VSSCanvas.connectionCheckInterval) {
+                clearInterval(window.VSSCanvas.connectionCheckInterval);
+            }
+            if (window.VSSCanvas.initializationTimeout) {
+                clearTimeout(window.VSSCanvas.initializationTimeout);
+            }
         });
         
-        // Handle unhandled promise rejections
-        window.addEventListener('unhandledrejection', function(e) {
-            updateStatus('Promise error: ' + e.reason);
-            sendMessage({
-                command: 'error',
-                data: {
-                    message: 'Unhandled promise rejection: ' + e.reason
+        // Add methods to the existing VSSCanvas namespace
+        window.VSSCanvas.init = function() {
+            console.log('VSSCanvas: Starting initialization for instance ID:', this.instanceId);
+            
+            if (this.initialized) {
+                console.log('VSSCanvas: Already initialized, performing cleanup before reinitializing...');
+                this.cleanup();
+            }
+            
+            try {
+                // Mark initialization start time for debugging
+                this.initStartedAt = new Date().toISOString();
+                
+                updateLoadingStatus('Initializing canvas...');
+                initializeCanvas();
+                
+                updateLoadingStatus('Setting up drawing tools...');
+                setupEventListeners();
+                
+                updateLoadingStatus('Establishing connection...');
+                setupMessagePassing();
+                
+                updateLoadingStatus('Canvas ready!');
+                updateStatus('Canvas initialized successfully');
+                
+                // Mark as initialized
+                this.initialized = true;
+                this.initCompletedAt = new Date().toISOString();
+                
+                console.log('VSSCanvas: Initialization completed successfully for instance ID:', this.instanceId);
+                
+                // Hide loading screen after a short delay
+                setTimeout(function() {
+                    if (window.VSSCanvas.initializationTimeout) {
+                        clearTimeout(window.VSSCanvas.initializationTimeout);
+                        window.VSSCanvas.initializationTimeout = null;
+                    }
+                    hideLoadingScreen();
+                }, 500);
+                
+                return true;
+            } catch (error) {
+                console.error('VSSCanvas: Initialization failed for instance ID:', this.instanceId, error);
+                
+                // Clear initialization timeout on error
+                if (this.initializationTimeout) {
+                    clearTimeout(this.initializationTimeout);
+                    this.initializationTimeout = null;
                 }
-            });
-        });
+                
+                // Mark initialization failure time for debugging
+                this.initFailedAt = new Date().toISOString();
+                this.lastInitError = error.message;
+                
+                showError('Initialization failed: ' + error.message, error.stack);
+                return false;
+            }
+        };
+        
+        // Cleanup method with comprehensive existence checks
+        window.VSSCanvas.cleanup = function() {
+            console.log('VSSCanvas: Starting cleanup for instance ID:', this.instanceId);
+            
+            try {
+                // Clear timeouts with existence checks
+                if (this.initializationTimeout) {
+                    console.log('VSSCanvas: Clearing initialization timeout');
+                    clearTimeout(this.initializationTimeout);
+                    this.initializationTimeout = null;
+                }
+                
+                if (this.connectionCheckInterval) {
+                    console.log('VSSCanvas: Clearing connection check interval');
+                    clearInterval(this.connectionCheckInterval);
+                    this.connectionCheckInterval = null;
+                }
+                
+                // Clear canvas if it exists and is valid
+                if (this.ctx && this.canvas) {
+                    try {
+                        console.log('VSSCanvas: Clearing canvas content');
+                        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                    } catch (canvasError) {
+                        console.warn('VSSCanvas: Error clearing canvas:', canvasError);
+                    }
+                }
+                
+                // Reset state variables
+                this.hasInitialized = false;
+                this.isDrawing = false;
+                this.currentTool = 'pen';
+                this.lastX = 0;
+                this.lastY = 0;
+                
+                // Reset DOM references
+                this.loadingScreen = null;
+                this.errorScreen = null;
+                this.loadingStatus = null;
+                
+                // Reset canvas references
+                this.canvas = null;
+                this.ctx = null;
+                
+                // Reset initialization flag
+                this.initialized = false;
+                
+                // Update timestamp for debugging
+                this.lastCleanupAt = new Date().toISOString();
+                
+                console.log('VSSCanvas: Cleanup completed successfully for instance ID:', this.instanceId);
+                
+            } catch (cleanupError) {
+                console.error('VSSCanvas: Error during cleanup:', cleanupError);
+                // Continue with cleanup even if some parts fail
+                this.initialized = false;
+                this.hasInitialized = false;
+            }
+        };
+        
+        // Check if canvas is initialized
+        window.VSSCanvas.isInitialized = function() {
+            return this.initialized && this.hasInitialized;
+        };
+        
+        // Get current canvas state
+        window.VSSCanvas.getState = function() {
+            return {
+                initialized: this.initialized,
+                hasInitialized: this.hasInitialized,
+                isDrawing: this.isDrawing,
+                currentTool: this.currentTool,
+                canvasSize: this.canvas ? { width: this.canvas.width, height: this.canvas.height } : null
+            };
+        };
+        
+        // Force reinitialization
+        window.VSSCanvas.reinitialize = function() {
+            this.cleanup();
+            return this.init();
+        };
+        
+        })(); // End of IIFE
     </script>
 </body>
 </html>

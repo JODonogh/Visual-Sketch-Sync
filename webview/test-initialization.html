@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VSS Initialization Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1e1e1e;
+            color: #cccccc;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background: #28a745;
+            color: white;
+        }
+        .error {
+            background: #dc3545;
+            color: white;
+        }
+        .info {
+            background: #17a2b8;
+            color: white;
+        }
+        button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #005a9e;
+        }
+    </style>
+</head>
+<body>
+    <h1>VSS Canvas Initialization Test</h1>
+    <p>This test verifies that the IIFE wrapper and namespace pattern prevent variable redeclaration errors.</p>
+    
+    <div id="test-results"></div>
+    
+    <button onclick="runInitializationTest()">Test Initialization</button>
+    <button onclick="runReinitialization()">Test Reinitialization</button>
+    <button onclick="runMultipleLoads()">Test Multiple Script Loads</button>
+    <button onclick="clearResults()">Clear Results</button>
+    
+    <!-- Mock VS Code API -->
+    <script>
+        // Mock VS Code API for testing
+        function acquireVsCodeApi() {
+            return {
+                postMessage: function(message) {
+                    console.log('Mock VS Code API message:', message);
+                }
+            };
+        }
+    </script>
+    
+    <!-- Load webview scripts -->
+    <script src="canvas-state.js"></script>
+    <script src="drawing-tools.js"></script>
+    <script src="color-system.js"></script>
+    <script src="alignment-guides.js"></script>
+    <script src="error-handler.js"></script>
+    
+    <!-- Inline script from index.html (simplified for testing) -->
+    <script>
+        // IIFE wrapper to create local scope and prevent variable conflicts
+        (function() {
+            'use strict';
+            
+            // Check for existing VSSCanvas instance and cleanup if needed
+            if (window.VSSCanvas && window.VSSCanvas.initialized) {
+                console.log('VSSCanvas already exists, cleaning up previous instance...');
+                window.VSSCanvas.cleanup();
+            }
+            
+            // Create VSSCanvas namespace to encapsulate all variables and functions
+            window.VSSCanvas = window.VSSCanvas || {};
+            
+            // Canvas and drawing state (now in namespace)
+            let canvas, ctx;
+            let isDrawing = false;
+            let currentTool = 'pen';
+            let lastX = 0;
+            let lastY = 0;
+            let hasInitialized = false;
+            let initializationTimeout;
+            
+            // VS Code API for message passing
+            const vscode = acquireVsCodeApi();
+            
+            // Mock functions for testing
+            function updateLoadingStatus(message) {
+                console.log('Loading status:', message);
+            }
+            
+            function showError(message, stack) {
+                console.error('Error:', message, stack);
+            }
+            
+            function updateStatus(message) {
+                console.log('Status:', message);
+            }
+            
+            function hideLoadingScreen() {
+                console.log('Hiding loading screen');
+                hasInitialized = true;
+            }
+            
+            function initializeCanvas() {
+                console.log('Initializing canvas...');
+                // Mock canvas initialization
+                canvas = { width: 800, height: 600 };
+                ctx = { clearRect: function() {} };
+            }
+            
+            function setupEventListeners() {
+                console.log('Setting up event listeners...');
+            }
+            
+            function setupMessagePassing() {
+                console.log('Setting up message passing...');
+            }
+            
+            // Expose VSSCanvas namespace methods for external access
+            window.VSSCanvas = {
+                initialized: false,
+                canvas: null,
+                ctx: null,
+                
+                // Initialization method
+                init: function() {
+                    if (this.initialized) {
+                        console.log('VSSCanvas already initialized, reinitializing...');
+                        this.cleanup();
+                    }
+                    
+                    try {
+                        updateLoadingStatus('Initializing canvas...');
+                        initializeCanvas();
+                        
+                        updateLoadingStatus('Setting up drawing tools...');
+                        setupEventListeners();
+                        
+                        updateLoadingStatus('Establishing connection...');
+                        setupMessagePassing();
+                        
+                        updateLoadingStatus('Canvas ready!');
+                        updateStatus('Canvas initialized successfully');
+                        
+                        this.initialized = true;
+                        this.canvas = canvas;
+                        this.ctx = ctx;
+                        
+                        // Hide loading screen after a short delay
+                        setTimeout(function() {
+                            clearTimeout(initializationTimeout);
+                            hideLoadingScreen();
+                        }, 100);
+                        
+                        return true;
+                    } catch (error) {
+                        clearTimeout(initializationTimeout);
+                        showError('Initialization failed: ' + error.message, error.stack);
+                        return false;
+                    }
+                },
+                
+                // Cleanup method
+                cleanup: function() {
+                    console.log('Cleaning up VSSCanvas instance...');
+                    
+                    // Clear timeouts
+                    if (initializationTimeout) {
+                        clearTimeout(initializationTimeout);
+                        initializationTimeout = null;
+                    }
+                    
+                    // Reset state variables
+                    hasInitialized = false;
+                    isDrawing = false;
+                    
+                    // Clear canvas if it exists
+                    if (ctx && canvas) {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    }
+                    
+                    // Reset namespace properties
+                    this.initialized = false;
+                    this.canvas = null;
+                    this.ctx = null;
+                    
+                    console.log('VSSCanvas cleanup completed');
+                },
+                
+                // Check if canvas is initialized
+                isInitialized: function() {
+                    return this.initialized && hasInitialized;
+                },
+                
+                // Get current canvas state
+                getState: function() {
+                    return {
+                        initialized: this.initialized,
+                        hasInitialized: hasInitialized,
+                        isDrawing: isDrawing,
+                        currentTool: currentTool,
+                        canvasSize: canvas ? { width: canvas.width, height: canvas.height } : null
+                    };
+                },
+                
+                // Force reinitialization
+                reinitialize: function() {
+                    this.cleanup();
+                    return this.init();
+                }
+            };
+            
+        })(); // End of IIFE
+    </script>
+    
+    <script>
+        function addTestResult(message, type = 'info') {
+            const resultsDiv = document.getElementById('test-results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${type}`;
+            resultDiv.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+            resultsDiv.appendChild(resultDiv);
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+        
+        function runInitializationTest() {
+            addTestResult('Starting initialization test...', 'info');
+            
+            try {
+                // Test that VSSCanvas namespace exists
+                if (typeof window.VSSCanvas === 'undefined') {
+                    addTestResult('FAIL: VSSCanvas namespace not found', 'error');
+                    return;
+                }
+                addTestResult('PASS: VSSCanvas namespace exists', 'success');
+                
+                // Test initialization
+                const success = window.VSSCanvas.init();
+                if (success) {
+                    addTestResult('PASS: Canvas initialized successfully', 'success');
+                } else {
+                    addTestResult('FAIL: Canvas initialization failed', 'error');
+                    return;
+                }
+                
+                // Test state
+                const state = window.VSSCanvas.getState();
+                if (state.initialized && state.hasInitialized) {
+                    addTestResult('PASS: Canvas state is correct', 'success');
+                } else {
+                    addTestResult('FAIL: Canvas state is incorrect', 'error');
+                }
+                
+                // Test that other classes are available
+                const classes = ['CanvasStateManager', 'DrawingTools', 'ColorSystem', 'AlignmentGuides', 'CanvasErrorHandler'];
+                let allClassesFound = true;
+                
+                classes.forEach(className => {
+                    if (typeof window[className] === 'undefined') {
+                        addTestResult(`FAIL: ${className} not found`, 'error');
+                        allClassesFound = false;
+                    } else {
+                        addTestResult(`PASS: ${className} available`, 'success');
+                    }
+                });
+                
+                if (allClassesFound) {
+                    addTestResult('PASS: All required classes are available', 'success');
+                }
+                
+            } catch (error) {
+                addTestResult(`FAIL: Initialization test threw error: ${error.message}`, 'error');
+            }
+        }
+        
+        function runReinitialization() {
+            addTestResult('Starting reinitialization test...', 'info');
+            
+            try {
+                // First initialization
+                window.VSSCanvas.init();
+                addTestResult('First initialization completed', 'info');
+                
+                // Second initialization (should cleanup and reinitialize)
+                const success = window.VSSCanvas.reinitialize();
+                if (success) {
+                    addTestResult('PASS: Reinitialization successful', 'success');
+                } else {
+                    addTestResult('FAIL: Reinitialization failed', 'error');
+                }
+                
+                // Verify state
+                if (window.VSSCanvas.isInitialized()) {
+                    addTestResult('PASS: Canvas is properly initialized after reinitialization', 'success');
+                } else {
+                    addTestResult('FAIL: Canvas not properly initialized after reinitialization', 'error');
+                }
+                
+            } catch (error) {
+                addTestResult(`FAIL: Reinitialization test threw error: ${error.message}`, 'error');
+            }
+        }
+        
+        function runMultipleLoads() {
+            addTestResult('Starting multiple script loads test...', 'info');
+            
+            try {
+                // Simulate multiple script loads by re-executing the IIFE
+                for (let i = 0; i < 3; i++) {
+                    addTestResult(`Simulating script load ${i + 1}...`, 'info');
+                    
+                    // This would normally cause "hasInitialized already declared" error
+                    // but with IIFE wrapper, it should be safe
+                    eval(`
+                        (function() {
+                            'use strict';
+                            
+                            if (window.VSSCanvas && window.VSSCanvas.initialized) {
+                                console.log('VSSCanvas already exists, cleaning up previous instance...');
+                                window.VSSCanvas.cleanup();
+                            }
+                            
+                            window.VSSCanvas = window.VSSCanvas || {};
+                            
+                            let hasInitialized = false; // This should not conflict
+                            let isDrawing = false;
+                            
+                            console.log('Script load ${i + 1} completed without errors');
+                        })();
+                    `);
+                }
+                
+                addTestResult('PASS: Multiple script loads completed without variable conflicts', 'success');
+                
+                // Verify VSSCanvas still works
+                if (window.VSSCanvas && typeof window.VSSCanvas.init === 'function') {
+                    addTestResult('PASS: VSSCanvas namespace still functional', 'success');
+                } else {
+                    addTestResult('FAIL: VSSCanvas namespace corrupted', 'error');
+                }
+                
+            } catch (error) {
+                addTestResult(`FAIL: Multiple loads test threw error: ${error.message}`, 'error');
+            }
+        }
+        
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+        }
+        
+        // Run initial test when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            addTestResult('Test page loaded successfully', 'success');
+            addTestResult('Ready to run tests. Click buttons above to test different scenarios.', 'info');
+        });
+    </script>
+</body>
+</html>

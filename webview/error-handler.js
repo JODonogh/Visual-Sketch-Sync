@@ -4,6 +4,16 @@
  * Handles errors in the webview and communicates with the sync server
  */
 
+// IIFE wrapper to prevent global conflicts
+(function() {
+    'use strict';
+    
+    // Check if CanvasErrorHandler already exists
+    if (window.CanvasErrorHandler) {
+        console.log('CanvasErrorHandler already exists, skipping redefinition');
+        return;
+    }
+
 class CanvasErrorHandler {
   constructor(options = {}) {
     this.options = {
@@ -819,10 +829,11 @@ class CanvasErrorHandler {
   }
 }
 
+// Expose CanvasErrorHandler to global scope
+window.CanvasErrorHandler = CanvasErrorHandler;
+
 // Auto-initialize if in browser environment
 if (typeof window !== 'undefined') {
-  window.CanvasErrorHandler = CanvasErrorHandler;
-  
   // Initialize error handler when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
@@ -837,7 +848,9 @@ if (typeof window !== 'undefined') {
   }
 }
 
+})(); // End of IIFE
+
 // Export for module environments
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = CanvasErrorHandler;
+  module.exports = window.CanvasErrorHandler;
 }

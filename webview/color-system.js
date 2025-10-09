@@ -1,4 +1,14 @@
 // Professional Color System Implementation
+// IIFE wrapper to prevent global conflicts
+(function() {
+    'use strict';
+    
+    // Check if ColorSystem already exists
+    if (window.ColorSystem) {
+        console.log('ColorSystem already exists, skipping redefinition');
+        return;
+    }
+
 class ColorSystem {
     constructor() {
         this.currentColor = { h: 0, s: 100, b: 100 }; // HSB format
@@ -370,3 +380,8 @@ class ColorSystem {
         return this.hsbToRgb(this.currentColor.h, this.currentColor.s, this.currentColor.b);
     }
 }
+
+// Expose ColorSystem to global scope
+window.ColorSystem = ColorSystem;
+
+})(); // End of IIFE

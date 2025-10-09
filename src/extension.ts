@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { WebviewPanelManager } from './webview-panel-manager';
 
 /**
  * VS Code Extension for Visual Sketch Sync
@@ -6,6 +7,7 @@ import * as vscode from 'vscode';
  */
 
 let drawingCanvasProvider: DrawingCanvasProvider | undefined;
+let webviewPanelManager: WebviewPanelManager | undefined;
 
 /**
  * Warning handler for experimental Node.js features and SQLite warnings
@@ -145,6 +147,10 @@ export function activate(context: vscode.ExtensionContext) {
         // Validate extension environment
         validateExtensionEnvironment(logger);
 
+        // Initialize WebviewPanelManager for drawing canvas
+        webviewPanelManager = WebviewPanelManager.getInstance(context.extensionUri, logger);
+        logger.info('WebviewPanelManager initialized');
+
         // Register all VSS commands with comprehensive error handling
         registerCommands(context);
         logger.info('Commands registered successfully');
@@ -182,10 +188,29 @@ export function activate(context: vscode.ExtensionContext) {
             performHealthCheck(logger);
         }, 300000); // Every 5 minutes
 
-        // Clean up interval on deactivation
-        context.subscriptions.push({
-            dispose: () => clearInterval(healthCheckInterval)
+        // Set up configuration watcher for fallback options
+        const configWatcher = vscode.workspace.onDidChangeConfiguration(event => {
+            if (event.affectsConfiguration('vss.webview') && webviewPanelManager) {
+                logger.info('Webview configuration changed, updating fallback options');
+                
+                const config = vscode.workspace.getConfiguration('vss');
+                const newOptions = {
+                    enableSidebarFallback: config.get<boolean>('webview.enableSidebarFallback', true),
+                    showFallbackMessage: config.get<boolean>('webview.showFallbackMessage', true),
+                    preferredDisplayMethod: config.get<string>('webview.preferredDisplayMethod', 'panel') === 'sidebar' 
+                        ? 'sidebar' as any
+                        : 'panel' as any
+                };
+                
+                webviewPanelManager.updateFallbackOptions(newOptions);
+            }
         });
+
+        // Clean up interval and watchers on deactivation
+        context.subscriptions.push(
+            { dispose: () => clearInterval(healthCheckInterval) },
+            configWatcher
+        );
 
         // Show success message with diagnostic option
         vscode.window.showInformationMessage(
@@ -279,14 +304,35 @@ function showEnhancedDiagnostics(warningHandler: WarningHandler, logger: VSSLogg
     const errorLogs = logger.getLogs('error');
     const warnLogs = logger.getLogs('warn');
     
+    // Get webview panel manager stats if available
+    const panelStats = webviewPanelManager ? webviewPanelManager.getPanelStats() : null;
+    const fallbackOptions = webviewPanelManager ? webviewPanelManager.getFallbackOptions() : null;
+    
     const diagnosticInfo = [
         `Visual Sketch Sync Diagnostics:`,
         ``,
         `Extension Status:`,
         `- Status: Active`,
         `- Webview Provider: ${drawingCanvasProvider ? 'Registered' : 'Not Registered'}`,
+        `- Panel Manager: ${webviewPanelManager ? 'Initialized' : 'Not Initialized'}`,
         `- Warning Handler: Active`,
         ``,
+        ...(panelStats ? [
+            `Webview Panel Status:`,
+            `- Display Method: ${panelStats.displayMethod}`,
+            `- Panel Exists: ${panelStats.exists}`,
+            `- Panel Visible: ${panelStats.visible}`,
+            `- Panel Active: ${panelStats.active}`,
+            `- Canvas Ready: ${panelStats.ready}`,
+            `- Dispose Count: ${panelStats.disposeCount}`,
+            `- Uptime: ${panelStats.uptime ? Math.round(panelStats.uptime / 1000) + 's' : 'N/A'}`,
+            ``,
+            `Fallback Configuration:`,
+            `- Sidebar Fallback: ${fallbackOptions?.enableSidebarFallback ? 'Enabled' : 'Disabled'}`,
+            `- Fallback Messages: ${fallbackOptions?.showFallbackMessage ? 'Enabled' : 'Disabled'}`,
+            `- Preferred Method: ${fallbackOptions?.preferredDisplayMethod || 'N/A'}`,
+            ``
+        ] : []),
         `System Information:`,
         `- Node.js Version: ${process.version}`,
         `- VS Code Version: ${vscode.version}`,
@@ -393,6 +439,13 @@ export function deactivate() {
         if (drawingCanvasProvider) {
             console.log('VSS: Cleaning up webview provider');
             drawingCanvasProvider = undefined;
+        }
+
+        // Clean up webview panel manager
+        if (webviewPanelManager) {
+            console.log('VSS: Cleaning up webview panel manager');
+            webviewPanelManager.dispose();
+            webviewPanelManager = undefined;
         }
 
         // Log successful deactivation
@@ -536,22 +589,82 @@ function registerCommands(context: vscode.ExtensionContext) {
             'vss.startSyncServer': 'Failed to start the sync server. Check if the port is available.',
             'vss.stopSyncServer': 'Failed to stop the sync server. It may not be running.',
             'vss.exportDesign': 'Failed to export design. Check file permissions and available disk space.',
+            'vss.chooseDisplayMethod': 'Failed to change display method. Please try again or restart VS Code.',
         };
 
         const userMessage = commandMessages[commandName] || `Failed to execute ${commandName}`;
         return `${userMessage} (${errorMessage})`;
     };
 
+    // Helper function to show fallback-specific error messages
+    const showFallbackErrorMessage = (error: any): void => {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        
+        if (errorMessage.includes('Panel creation failed') && errorMessage.includes('Sidebar fallback failed')) {
+            vscode.window.showErrorMessage(
+                'Unable to open Drawing Canvas in any display method',
+                'Try Panel Only',
+                'Try Sidebar Only',
+                'Show Diagnostics',
+                'Report Issue'
+            ).then(selection => {
+                if (selection === 'Try Panel Only') {
+                    webviewPanelManager?.updateFallbackOptions({ enableSidebarFallback: false });
+                    vscode.commands.executeCommand('vss.openDrawingCanvas');
+                } else if (selection === 'Try Sidebar Only') {
+                    webviewPanelManager?.updateFallbackOptions({ preferredDisplayMethod: 'sidebar' as any });
+                    vscode.commands.executeCommand('vss.openDrawingCanvas');
+                } else if (selection === 'Show Diagnostics') {
+                    vscode.commands.executeCommand('vss.showDiagnostics');
+                } else if (selection === 'Report Issue') {
+                    const issueUrl = `https://github.com/JODonogh/Visual-Sketch-Sync/issues/new?title=Webview%20Display%20Error&body=${encodeURIComponent(`Error: ${errorMessage}\n\nBoth panel and sidebar display methods failed.`)}`;
+                    vscode.env.openExternal(vscode.Uri.parse(issueUrl));
+                }
+            });
+        } else {
+            // Standard error handling for other cases
+            vscode.window.showErrorMessage(
+                `Drawing Canvas Error: ${errorMessage}`,
+                'Retry',
+                'Choose Display Method',
+                'Show Diagnostics'
+            ).then(selection => {
+                if (selection === 'Retry') {
+                    vscode.commands.executeCommand('vss.openDrawingCanvas');
+                } else if (selection === 'Choose Display Method') {
+                    vscode.commands.executeCommand('vss.chooseDisplayMethod');
+                } else if (selection === 'Show Diagnostics') {
+                    vscode.commands.executeCommand('vss.showDiagnostics');
+                }
+            });
+        }
+    };
+
     // Register vss.openDrawingCanvas command with enhanced error handling
     const openDrawingCanvasCommand = createCommandHandler('vss.openDrawingCanvas', async () => {
-        // Validate webview provider exists
-        if (!drawingCanvasProvider) {
-            throw new Error('Drawing canvas provider not initialized. Please restart VS Code.');
+        // Validate webview panel manager exists
+        if (!webviewPanelManager) {
+            throw new Error('Webview panel manager not initialized. Please restart VS Code.');
         }
 
-        // Show the drawing canvas in the explorer view
-        await vscode.commands.executeCommand('vss.drawingCanvas.focus');
-        vscode.window.showInformationMessage('Drawing Canvas opened successfully!');
+        try {
+            // Use WebviewPanelManager to show the drawing canvas with fallback support
+            await webviewPanelManager.showDrawingCanvas();
+            
+            // Get display method for appropriate success message
+            const displayMethod = webviewPanelManager.getCurrentDisplayMethod();
+            const methodName = displayMethod === 'panel' ? 'panel' : 'sidebar';
+            vscode.window.showInformationMessage(`Drawing Canvas opened successfully in ${methodName}!`);
+            
+        } catch (error) {
+            logger.error('All webview display methods failed', { error });
+            
+            // Use specialized fallback error handling
+            showFallbackErrorMessage(error);
+            
+            // Still throw the error for the command handler's error handling
+            throw error;
+        }
     });
 
     // Register vss.startSyncServer command with enhanced error handling
@@ -655,6 +768,15 @@ function registerCommands(context: vscode.ExtensionContext) {
         // TODO: Implement error log export functionality
     });
 
+    // Register command to choose display method for drawing canvas
+    const chooseDisplayMethodCommand = createCommandHandler('vss.chooseDisplayMethod', async () => {
+        if (!webviewPanelManager) {
+            throw new Error('Webview panel manager not initialized. Please restart VS Code.');
+        }
+
+        await webviewPanelManager.showDisplayMethodChoice();
+    });
+
     // Add all commands to context subscriptions for proper cleanup
     context.subscriptions.push(
         openDrawingCanvasCommand,
@@ -669,7 +791,8 @@ function registerCommands(context: vscode.ExtensionContext) {
         runDiagnosticsCommand,
         runRecoveryCommand,
         clearCanvasHistoryCommand,
-        exportErrorLogsCommand
+        exportErrorLogsCommand,
+        chooseDisplayMethodCommand
     );
 
     console.log('All VSS commands registered successfully');

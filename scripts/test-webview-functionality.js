@@ -1,8 +1,8 @@
-#!/usr/bin/env node
-
 /**
- * Test script for VSS webview functionality
- * Tests webview HTML, JavaScript, and communication capabilities
+ * Webview Panel Functionality Test Script
+ * Tests Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 4.2, 4.4
+ * 
+ * This script validates the webview panel implementation without requiring VS Code extension context
  */
 
 const fs = require('fs');
@@ -10,372 +10,358 @@ const path = require('path');
 
 class WebviewFunctionalityTester {
     constructor() {
-        this.webviewPath = path.join(__dirname, '..', 'webview', 'index.html');
-        this.results = {
-            htmlStructure: { passed: 0, failed: 0, errors: [] },
-            javascript: { passed: 0, failed: 0, errors: [] },
-            styling: { passed: 0, failed: 0, errors: [] },
-            communication: { passed: 0, failed: 0, errors: [] },
-            errors: [],
-            warnings: []
-        };
+        this.results = [];
+        this.testCount = 0;
+        this.passCount = 0;
     }
 
-    async runTests() {
-        console.log('🧪 VSS Webview Functionality Test Suite');
-        console.log('=======================================\n');
+    /**
+     * Runs all webview functionality tests
+     */
+    async runAllTests() {
+        console.log('🧪 Starting Webview Panel Functionality Tests');
+        console.log('=' .repeat(60));
 
-        try {
-            // Test 1: HTML Structure validation
-            console.log('📄 Test 1: Validating HTML structure...');
-            this.validateHTMLStructure();
-            
-            // Test 2: JavaScript functionality
-            console.log('\n🔧 Test 2: Validating JavaScript functionality...');
-            this.validateJavaScript();
-            
-            // Test 3: CSS styling
-            console.log('\n🎨 Test 3: Validating CSS styling...');
-            this.validateCSS();
-            
-            // Test 4: VS Code communication
-            console.log('\n📡 Test 4: Validating VS Code communication...');
-            this.validateCommunication();
-            
-            // Generate report
-            this.generateReport();
-            
-        } catch (error) {
-            console.error('❌ Test suite failed:', error.message);
-            this.results.errors.push(`Test suite failure: ${error.message}`);
-        }
-    }
-
-    validateHTMLStructure() {
-        try {
-            const htmlContent = fs.readFileSync(this.webviewPath, 'utf8');
-            
-            // Check for required HTML elements
-            const requiredElements = [
-                { element: 'canvas', id: 'drawing-canvas', description: 'Main drawing canvas' },
-                { element: 'div', id: 'status', description: 'Status display' },
-                { element: 'div', id: 'canvas-container', description: 'Canvas container' },
-                { element: 'div', class: 'toolbar', description: 'Drawing toolbar' }
-            ];
-            
-            requiredElements.forEach(req => {
-                const selector = req.id ? `id="${req.id}"` : `class="${req.class}"`;
-                const regex = new RegExp(`<${req.element}[^>]*${selector}[^>]*>`, 'i');
-                
-                if (regex.test(htmlContent)) {
-                    console.log(`   ✅ ${req.description} found`);
-                    this.results.htmlStructure.passed++;
-                } else {
-                    console.log(`   ❌ ${req.description} missing`);
-                    this.results.htmlStructure.failed++;
-                    this.results.htmlStructure.errors.push(`Missing ${req.description}`);
-                }
-            });
-            
-            // Check for Content Security Policy
-            if (htmlContent.includes('Content-Security-Policy')) {
-                console.log('   ✅ Content Security Policy found');
-                this.results.htmlStructure.passed++;
-            } else {
-                console.log('   ❌ Content Security Policy missing');
-                this.results.htmlStructure.failed++;
-                this.results.htmlStructure.errors.push('Missing Content Security Policy');
-            }
-            
-            // Check for viewport meta tag
-            if (htmlContent.includes('viewport')) {
-                console.log('   ✅ Viewport meta tag found');
-                this.results.htmlStructure.passed++;
-            } else {
-                console.log('   ⚠️  Viewport meta tag missing (recommended for mobile)');
-                this.results.warnings.push('Viewport meta tag missing');
-            }
-            
-        } catch (error) {
-            this.results.htmlStructure.errors.push(`HTML validation failed: ${error.message}`);
-            console.log(`   ❌ HTML validation failed: ${error.message}`);
-        }
-    }
-
-    validateJavaScript() {
-        try {
-            const htmlContent = fs.readFileSync(this.webviewPath, 'utf8');
-            
-            // Extract JavaScript content
-            const scriptMatch = htmlContent.match(/<script>([\s\S]*?)<\/script>/);
-            if (!scriptMatch) {
-                console.log('   ❌ No JavaScript found in webview');
-                this.results.javascript.failed++;
-                return;
-            }
-            
-            const jsContent = scriptMatch[1];
-            
-            // Check for required JavaScript functions
-            const requiredFunctions = [
-                'initializeCanvas',
-                'setupEventListeners',
-                'setupMessagePassing',
-                'startDrawing',
-                'draw',
-                'stopDrawing',
-                'clearCanvas',
-                'sendMessage'
-            ];
-            
-            requiredFunctions.forEach(func => {
-                const regex = new RegExp(`function\\s+${func}\\s*\\(|${func}\\s*[=:]\\s*function|${func}\\s*\\(`, 'i');
-                if (regex.test(jsContent)) {
-                    console.log(`   ✅ Function ${func} found`);
-                    this.results.javascript.passed++;
-                } else {
-                    console.log(`   ❌ Function ${func} missing`);
-                    this.results.javascript.failed++;
-                    this.results.javascript.errors.push(`Missing function: ${func}`);
-                }
-            });
-            
-            // Check for VS Code API usage
-            if (jsContent.includes('acquireVsCodeApi')) {
-                console.log('   ✅ VS Code API acquisition found');
-                this.results.javascript.passed++;
-            } else {
-                console.log('   ❌ VS Code API acquisition missing');
-                this.results.javascript.failed++;
-                this.results.javascript.errors.push('Missing VS Code API acquisition');
-            }
-            
-            // Check for event listeners
-            const eventListeners = ['mousedown', 'mousemove', 'mouseup', 'touchstart', 'touchmove'];
-            eventListeners.forEach(event => {
-                if (jsContent.includes(`'${event}'`) || jsContent.includes(`"${event}"`)) {
-                    console.log(`   ✅ Event listener for ${event} found`);
-                    this.results.javascript.passed++;
-                } else {
-                    console.log(`   ⚠️  Event listener for ${event} missing`);
-                    this.results.warnings.push(`Missing ${event} event listener`);
-                }
-            });
-            
-            // Check for error handling
-            if (jsContent.includes('try') && jsContent.includes('catch')) {
-                console.log('   ✅ Error handling found');
-                this.results.javascript.passed++;
-            } else {
-                console.log('   ⚠️  Error handling missing or limited');
-                this.results.warnings.push('Limited error handling in JavaScript');
-            }
-            
-        } catch (error) {
-            this.results.javascript.errors.push(`JavaScript validation failed: ${error.message}`);
-            console.log(`   ❌ JavaScript validation failed: ${error.message}`);
-        }
-    }
-
-    validateCSS() {
-        try {
-            const htmlContent = fs.readFileSync(this.webviewPath, 'utf8');
-            
-            // Extract CSS content
-            const styleMatch = htmlContent.match(/<style>([\s\S]*?)<\/style>/);
-            if (!styleMatch) {
-                console.log('   ❌ No CSS found in webview');
-                this.results.styling.failed++;
-                return;
-            }
-            
-            const cssContent = styleMatch[1];
-            
-            // Check for required CSS selectors
-            const requiredSelectors = [
-                '#canvas-container',
-                '#drawing-canvas',
-                '#status',
-                '.toolbar',
-                '.tool-button'
-            ];
-            
-            requiredSelectors.forEach(selector => {
-                const regex = new RegExp(`${selector.replace('#', '\\#').replace('.', '\\.')}\\s*{`, 'i');
-                if (regex.test(cssContent)) {
-                    console.log(`   ✅ CSS selector ${selector} found`);
-                    this.results.styling.passed++;
-                } else {
-                    console.log(`   ❌ CSS selector ${selector} missing`);
-                    this.results.styling.failed++;
-                    this.results.styling.errors.push(`Missing CSS selector: ${selector}`);
-                }
-            });
-            
-            // Check for responsive design
-            if (cssContent.includes('flex') || cssContent.includes('grid')) {
-                console.log('   ✅ Flexible layout found');
-                this.results.styling.passed++;
-            } else {
-                console.log('   ⚠️  No flexible layout detected');
-                this.results.warnings.push('No flexible layout (flex/grid) detected');
-            }
-            
-            // Check for dark theme support
-            if (cssContent.includes('#1e1e1e') || cssContent.includes('dark')) {
-                console.log('   ✅ Dark theme styling found');
-                this.results.styling.passed++;
-            } else {
-                console.log('   ⚠️  Dark theme styling not detected');
-                this.results.warnings.push('Dark theme styling not detected');
-            }
-            
-            // Check for touch-friendly design
-            if (cssContent.includes('touch-action') || cssContent.includes('user-select')) {
-                console.log('   ✅ Touch-friendly CSS found');
-                this.results.styling.passed++;
-            } else {
-                console.log('   ⚠️  Touch-friendly CSS not detected');
-                this.results.warnings.push('Touch-friendly CSS not detected');
-            }
-            
-        } catch (error) {
-            this.results.styling.errors.push(`CSS validation failed: ${error.message}`);
-            console.log(`   ❌ CSS validation failed: ${error.message}`);
-        }
-    }
-
-    validateCommunication() {
-        try {
-            const htmlContent = fs.readFileSync(this.webviewPath, 'utf8');
-            
-            // Extract JavaScript content for communication analysis
-            const scriptMatch = htmlContent.match(/<script>([\s\S]*?)<\/script>/);
-            if (!scriptMatch) {
-                console.log('   ❌ No JavaScript found for communication analysis');
-                this.results.communication.failed++;
-                return;
-            }
-            
-            const jsContent = scriptMatch[1];
-            
-            // Check for message sending capability
-            if (jsContent.includes('vscode.postMessage')) {
-                console.log('   ✅ Message sending capability found');
-                this.results.communication.passed++;
-            } else {
-                console.log('   ❌ Message sending capability missing');
-                this.results.communication.failed++;
-                this.results.communication.errors.push('Missing message sending capability');
-            }
-            
-            // Check for message receiving capability
-            if (jsContent.includes('window.addEventListener') && jsContent.includes('message')) {
-                console.log('   ✅ Message receiving capability found');
-                this.results.communication.passed++;
-            } else {
-                console.log('   ❌ Message receiving capability missing');
-                this.results.communication.failed++;
-                this.results.communication.errors.push('Missing message receiving capability');
-            }
-            
-            // Check for specific message types
-            const messageTypes = ['canvasReady', 'drawingStarted', 'drawing', 'drawingEnded', 'toolChanged'];
-            messageTypes.forEach(msgType => {
-                if (jsContent.includes(msgType)) {
-                    console.log(`   ✅ Message type '${msgType}' found`);
-                    this.results.communication.passed++;
-                } else {
-                    console.log(`   ⚠️  Message type '${msgType}' not found`);
-                    this.results.warnings.push(`Message type '${msgType}' not found`);
-                }
-            });
-            
-            // Check for error handling in communication
-            if (jsContent.includes('try') && jsContent.includes('postMessage')) {
-                console.log('   ✅ Communication error handling found');
-                this.results.communication.passed++;
-            } else {
-                console.log('   ⚠️  Communication error handling missing');
-                this.results.warnings.push('Communication error handling missing');
-            }
-            
-        } catch (error) {
-            this.results.communication.errors.push(`Communication validation failed: ${error.message}`);
-            console.log(`   ❌ Communication validation failed: ${error.message}`);
-        }
-    }
-
-    generateReport() {
-        console.log('\n📊 Webview Test Results Summary');
-        console.log('===============================');
+        // Task 5.1: Test webview panel creation and display
+        await this.testPanelCreationAndDisplay();
         
-        const categories = ['htmlStructure', 'javascript', 'styling', 'communication'];
-        let totalPassed = 0;
-        let totalFailed = 0;
-        let totalErrors = 0;
+        // Task 5.2: Test error handling and recovery scenarios
+        await this.testErrorHandlingAndRecovery();
+
+        this.printSummary();
+        return this.passCount === this.testCount;
+    }
+
+    /**
+     * Task 5.1: Test webview panel creation and display
+     */
+    async testPanelCreationAndDisplay() {
+        console.log('\n📋 Task 5.1: Testing webview panel creation and display');
+        console.log('-'.repeat(50));
+
+        // Test: Verify "VSS: Open Drawing Canvas" command implementation exists
+        this.testCommandImplementation();
         
-        categories.forEach(category => {
-            const result = this.results[category];
-            const categoryName = category.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-            
-            console.log(`\n${categoryName}:`);
-            console.log(`  ✅ Passed: ${result.passed}`);
-            console.log(`  ❌ Failed: ${result.failed}`);
-            
-            if (result.errors.length > 0) {
-                console.log(`  Errors:`);
-                result.errors.forEach(error => {
-                    console.log(`    - ${error}`);
-                });
-            }
-            
-            totalPassed += result.passed;
-            totalFailed += result.failed;
-            totalErrors += result.errors.length;
+        // Test: Panel appears in main editor area with full canvas interface
+        this.testCanvasInterfaceStructure();
+        
+        // Test: Validate drawing tools and canvas interaction work properly
+        this.testDrawingToolsImplementation();
+    }
+
+    /**
+     * Task 5.2: Test error handling and recovery scenarios
+     */
+    async testErrorHandlingAndRecovery() {
+        console.log('\n📋 Task 5.2: Testing error handling and recovery scenarios');
+        console.log('-'.repeat(50));
+
+        // Test: Webview content loading failures and error display
+        this.testErrorDisplayImplementation();
+        
+        // Test: Multiple command executions focus existing panel
+        this.testMultipleCommandHandling();
+        
+        // Test: Panel disposal and recreation functionality
+        this.testPanelLifecycleManagement();
+    }
+
+    /**
+     * Test command implementation (Requirement 1.1)
+     */
+    testCommandImplementation() {
+        const extensionPath = path.join(__dirname, '../src/extension.ts');
+        
+        if (!fs.existsSync(extensionPath)) {
+            this.addResult('Command Implementation - Extension File', false, 
+                'Extension file should exist at src/extension.ts');
+            return;
+        }
+
+        const extensionContent = fs.readFileSync(extensionPath, 'utf8');
+        
+        // Check if command is registered
+        const hasCommandRegistration = extensionContent.includes('vss.openDrawingCanvas');
+        this.addResult('Command Registration', hasCommandRegistration,
+            'VSS: Open Drawing Canvas command should be registered in extension');
+
+        // Check if WebviewPanelManager is used
+        const usesWebviewPanelManager = extensionContent.includes('WebviewPanelManager');
+        this.addResult('WebviewPanelManager Usage', usesWebviewPanelManager,
+            'Extension should use WebviewPanelManager for panel creation');
+
+        // Check if command handler exists
+        const hasCommandHandler = extensionContent.includes('showDrawingCanvas');
+        this.addResult('Command Handler', hasCommandHandler,
+            'Command handler should call showDrawingCanvas method');
+    }
+
+    /**
+     * Test canvas interface structure (Requirement 1.2)
+     */
+    testCanvasInterfaceStructure() {
+        const htmlPath = path.join(__dirname, '../webview/index.html');
+        
+        if (!fs.existsSync(htmlPath)) {
+            this.addResult('Canvas Interface - HTML File', false,
+                'Webview HTML file should exist at webview/index.html');
+            return;
+        }
+
+        const htmlContent = fs.readFileSync(htmlPath, 'utf8');
+
+        // Test required HTML elements
+        const requiredElements = [
+            { selector: 'id="drawing-canvas"', name: 'Drawing Canvas Element' },
+            { selector: 'id="status"', name: 'Status Bar Element' },
+            { selector: 'class="toolbar"', name: 'Toolbar Element' },
+            { selector: 'data-tool="pen"', name: 'Pen Tool Button' },
+            { selector: 'data-tool="eraser"', name: 'Eraser Tool Button' },
+            { selector: 'id="clear-canvas"', name: 'Clear Canvas Button' },
+            { selector: 'id="connection-status"', name: 'Connection Status Element' }
+        ];
+
+        for (const element of requiredElements) {
+            const exists = htmlContent.includes(element.selector);
+            this.addResult(`Canvas Interface - ${element.name}`, exists,
+                `${element.name} should exist in webview HTML`);
+        }
+
+        // Test canvas container structure
+        const hasCanvasContainer = htmlContent.includes('id="canvas-container"');
+        this.addResult('Canvas Interface - Container Structure', hasCanvasContainer,
+            'Canvas container should exist to hold all interface elements');
+    }
+
+    /**
+     * Test drawing tools implementation (Requirement 1.3)
+     */
+    testDrawingToolsImplementation() {
+        const htmlPath = path.join(__dirname, '../webview/index.html');
+        
+        if (!fs.existsSync(htmlPath)) {
+            this.addResult('Drawing Tools - HTML File', false,
+                'Cannot test drawing tools - HTML file missing');
+            return;
+        }
+
+        const htmlContent = fs.readFileSync(htmlPath, 'utf8');
+
+        // Test JavaScript functions for drawing interaction
+        const requiredFunctions = [
+            'initializeCanvas',
+            'startDrawing', 
+            'draw',
+            'stopDrawing',
+            'clearCanvas',
+            'selectTool',
+            'setupEventListeners'
+        ];
+
+        for (const func of requiredFunctions) {
+            const exists = htmlContent.includes(`function ${func}`);
+            this.addResult(`Drawing Tools - ${func}`, exists,
+                `${func} function should exist for canvas interaction`);
+        }
+
+        // Test event listeners for user interaction
+        const eventListeners = [
+            'mousedown',
+            'mousemove', 
+            'mouseup',
+            'touchstart',
+            'touchmove',
+            'touchend'
+        ];
+
+        for (const event of eventListeners) {
+            const exists = htmlContent.includes(`addEventListener('${event}'`);
+            this.addResult(`Drawing Tools - ${event} Event`, exists,
+                `${event} event listener should be registered for drawing interaction`);
+        }
+
+        // Test canvas context and drawing properties
+        const hasCanvasContext = htmlContent.includes('getContext(\'2d\')');
+        this.addResult('Drawing Tools - Canvas Context', hasCanvasContext,
+            'Canvas should get 2D rendering context for drawing');
+
+        const hasDrawingProperties = htmlContent.includes('strokeStyle') && htmlContent.includes('lineWidth');
+        this.addResult('Drawing Tools - Drawing Properties', hasDrawingProperties,
+            'Canvas should set drawing properties like strokeStyle and lineWidth');
+    }
+
+    /**
+     * Test error display implementation (Requirement 4.2)
+     */
+    testErrorDisplayImplementation() {
+        const htmlPath = path.join(__dirname, '../webview/index.html');
+        
+        if (!fs.existsSync(htmlPath)) {
+            this.addResult('Error Display - HTML File', false,
+                'Cannot test error display - HTML file missing');
+            return;
+        }
+
+        const htmlContent = fs.readFileSync(htmlPath, 'utf8');
+
+        // Test loading screen implementation
+        const hasLoadingScreen = htmlContent.includes('id="loading-screen"');
+        this.addResult('Error Display - Loading Screen', hasLoadingScreen,
+            'Loading screen should be implemented for initialization feedback');
+
+        // Test error screen implementation  
+        const hasErrorScreen = htmlContent.includes('id="error-screen"');
+        this.addResult('Error Display - Error Screen', hasErrorScreen,
+            'Error screen should be implemented for failure scenarios');
+
+        // Test error recovery buttons
+        const hasRetryButton = htmlContent.includes('id="retry-button"');
+        this.addResult('Error Display - Retry Button', hasRetryButton,
+            'Retry button should be available for error recovery');
+
+        const hasReportButton = htmlContent.includes('id="report-button"');
+        this.addResult('Error Display - Report Button', hasReportButton,
+            'Report issue button should be available for user feedback');
+
+        // Test error handling functions
+        const hasShowError = htmlContent.includes('function showError') || htmlContent.includes('showError');
+        this.addResult('Error Display - Show Error Function', hasShowError,
+            'showError function should exist to display error messages');
+
+        // Test global error handlers
+        const hasGlobalErrorHandler = htmlContent.includes('window.addEventListener(\'error\'');
+        this.addResult('Error Display - Global Error Handler', hasGlobalErrorHandler,
+            'Global error handler should catch JavaScript errors');
+
+        const hasPromiseRejectionHandler = htmlContent.includes('unhandledrejection');
+        this.addResult('Error Display - Promise Rejection Handler', hasPromiseRejectionHandler,
+            'Unhandled promise rejection handler should catch async errors');
+    }
+
+    /**
+     * Test multiple command handling (Requirement 1.5)
+     */
+    testMultipleCommandHandling() {
+        const managerPath = path.join(__dirname, '../src/webview-panel-manager.ts');
+        
+        if (!fs.existsSync(managerPath)) {
+            this.addResult('Multiple Commands - Manager File', false,
+                'WebviewPanelManager file should exist');
+            return;
+        }
+
+        const managerContent = fs.readFileSync(managerPath, 'utf8');
+
+        // Test singleton pattern implementation
+        const hasSingleton = managerContent.includes('getInstance');
+        this.addResult('Multiple Commands - Singleton Pattern', hasSingleton,
+            'WebviewPanelManager should use singleton pattern to prevent duplicates');
+
+        // Test existing panel check
+        const hasExistingPanelCheck = managerContent.includes('currentPanel') && managerContent.includes('reveal');
+        this.addResult('Multiple Commands - Existing Panel Check', hasExistingPanelCheck,
+            'Manager should check for existing panel and reveal it instead of creating new one');
+
+        // Test panel state tracking
+        const hasPanelState = managerContent.includes('PanelState') || managerContent.includes('isVisible');
+        this.addResult('Multiple Commands - Panel State Tracking', hasPanelState,
+            'Manager should track panel state to handle multiple commands properly');
+    }
+
+    /**
+     * Test panel lifecycle management (Requirement 1.4, 1.5)
+     */
+    testPanelLifecycleManagement() {
+        const managerPath = path.join(__dirname, '../src/webview-panel-manager.ts');
+        
+        if (!fs.existsSync(managerPath)) {
+            this.addResult('Panel Lifecycle - Manager File', false,
+                'WebviewPanelManager file should exist');
+            return;
+        }
+
+        const managerContent = fs.readFileSync(managerPath, 'utf8');
+
+        // Test disposal handling
+        const hasDispose = managerContent.includes('dispose');
+        this.addResult('Panel Lifecycle - Dispose Method', hasDispose,
+            'Manager should have dispose method for cleanup');
+
+        // Test recreation capability
+        const hasRecreate = managerContent.includes('recreatePanel') || managerContent.includes('showDrawingCanvas');
+        this.addResult('Panel Lifecycle - Recreation Capability', hasRecreate,
+            'Manager should be able to recreate panel after disposal');
+
+        // Test panel existence checking
+        const hasExistsCheck = managerContent.includes('exists') || managerContent.includes('currentPanel');
+        this.addResult('Panel Lifecycle - Existence Check', hasExistsCheck,
+            'Manager should be able to check if panel exists');
+
+        // Test event handlers for panel lifecycle
+        const hasLifecycleHandlers = managerContent.includes('onDidDispose') || managerContent.includes('onDidChangeViewState');
+        this.addResult('Panel Lifecycle - Event Handlers', hasLifecycleHandlers,
+            'Manager should handle panel lifecycle events');
+
+        // Test message handler integration
+        const messageHandlerPath = path.join(__dirname, '../src/webview-message-handler.ts');
+        if (fs.existsSync(messageHandlerPath)) {
+            const messageContent = fs.readFileSync(messageHandlerPath, 'utf8');
+            const hasMessageHandling = messageContent.includes('WebviewMessageHandler');
+            this.addResult('Panel Lifecycle - Message Handler Integration', hasMessageHandling,
+                'Manager should integrate with message handler for communication');
+        }
+    }
+
+    /**
+     * Adds a test result
+     */
+    addResult(testName, passed, description) {
+        this.testCount++;
+        if (passed) this.passCount++;
+        
+        this.results.push({
+            name: testName,
+            passed,
+            description
         });
-        
-        console.log(`\nOverall Statistics:`);
-        console.log(`  Total Passed: ${totalPassed}`);
-        console.log(`  Total Failed: ${totalFailed}`);
-        console.log(`  Total Errors: ${totalErrors}`);
-        console.log(`  Warnings: ${this.results.warnings.length}`);
-        
-        if (this.results.warnings.length > 0) {
-            console.log('\n⚠️  Warnings:');
-            this.results.warnings.forEach(warning => {
-                console.log(`   - ${warning}`);
-            });
+
+        const status = passed ? '✅' : '❌';
+        console.log(`  ${status} ${testName}: ${description}`);
+    }
+
+    /**
+     * Prints test summary
+     */
+    printSummary() {
+        console.log('\n' + '='.repeat(60));
+        console.log('WEBVIEW PANEL FUNCTIONALITY TEST SUMMARY');
+        console.log('='.repeat(60));
+        console.log(`Total Tests: ${this.testCount}`);
+        console.log(`Passed: ${this.passCount}`);
+        console.log(`Failed: ${this.testCount - this.passCount}`);
+        console.log(`Pass Rate: ${((this.passCount / this.testCount) * 100).toFixed(1)}%`);
+
+        if (this.passCount < this.testCount) {
+            console.log('\n❌ FAILED TESTS:');
+            this.results
+                .filter(r => !r.passed)
+                .forEach(r => console.log(`  - ${r.name}: ${r.description}`));
         }
-        
-        // Overall status
-        const isSuccess = totalFailed === 0 && totalErrors === 0;
-        const hasMinorIssues = this.results.warnings.length > 0;
-        
-        console.log('\n' + '='.repeat(50));
-        if (isSuccess && !hasMinorIssues) {
-            console.log('🎉 ALL WEBVIEW TESTS PASSED - Webview is fully functional!');
-        } else if (isSuccess && hasMinorIssues) {
-            console.log('✅ WEBVIEW TESTS PASSED - Minor improvements recommended');
-        } else {
-            console.log('❌ WEBVIEW TESTS FAILED - Issues found in webview implementation');
-            console.log('   Please fix the errors above and run the test again.');
-        }
-        console.log('='.repeat(50));
-        
-        return isSuccess;
+
+        const success = this.passCount === this.testCount;
+        console.log(`\n${success ? '✅' : '⚠️'} Webview panel functionality tests ${success ? 'PASSED' : 'COMPLETED WITH ISSUES'}`);
     }
 }
 
-// Run the tests if this script is executed directly
+// Run tests if this file is executed directly
 if (require.main === module) {
     const tester = new WebviewFunctionalityTester();
-    tester.runTests().then(() => {
-        process.exit(0);
+    tester.runAllTests().then(success => {
+        process.exit(success ? 0 : 1);
     }).catch(error => {
         console.error('Test execution failed:', error);
         process.exit(1);
     });
 }
 
-module.exports = WebviewFunctionalityTester;
+module.exports = { WebviewFunctionalityTester };

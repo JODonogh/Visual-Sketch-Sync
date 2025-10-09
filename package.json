@@ -96,6 +96,11 @@
         "command": "vss.exportErrorLogs",
         "title": "Export Error Logs",
         "category": "VSS"
+      },
+      {
+        "command": "vss.chooseDisplayMethod",
+        "title": "Choose Display Method",
+        "category": "VSS"
       }
     ],
     "views": {
@@ -154,6 +159,22 @@
           "type": "number",
           "default": 9222,
           "description": "Port for Chrome remote debugging"
+        },
+        "vss.webview.enableSidebarFallback": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable fallback to sidebar view if panel creation fails"
+        },
+        "vss.webview.showFallbackMessage": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show notification when fallback to sidebar view is used"
+        },
+        "vss.webview.preferredDisplayMethod": {
+          "type": "string",
+          "enum": ["panel", "sidebar"],
+          "default": "panel",
+          "description": "Preferred method for displaying the drawing canvas"
         }
       }
     }

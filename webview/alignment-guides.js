@@ -1,4 +1,14 @@
 // Alignment Guides and CRAP Design Principle Helpers
+// IIFE wrapper to prevent global conflicts
+(function() {
+    'use strict';
+    
+    // Check if AlignmentGuides already exists
+    if (window.AlignmentGuides) {
+        console.log('AlignmentGuides already exists, skipping redefinition');
+        return;
+    }
+
 class AlignmentGuides {
     constructor(canvas, ctx, stateManager) {
         this.canvas = canvas;
@@ -1079,3 +1089,8 @@ class AlignmentGuides {
         }
     }
 }
+
+// Expose AlignmentGuides to global scope
+window.AlignmentGuides = AlignmentGuides;
+
+})(); // End of IIFE

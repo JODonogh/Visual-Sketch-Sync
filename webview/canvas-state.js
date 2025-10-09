@@ -1,4 +1,14 @@
 // Canvas State Management and Layer System
+// IIFE wrapper to prevent global conflicts
+(function() {
+    'use strict';
+    
+    // Check if CanvasStateManager already exists
+    if (window.CanvasStateManager) {
+        console.log('CanvasStateManager already exists, skipping redefinition');
+        return;
+    }
+
 class CanvasStateManager {
     constructor(canvas, ctx) {
         this.canvas = canvas;
@@ -505,3 +515,8 @@ class CanvasStateManager {
         };
     }
 }
+
+// Expose CanvasStateManager to global scope
+window.CanvasStateManager = CanvasStateManager;
+
+})(); // End of IIFE

@@ -1,4 +1,14 @@
 // Professional Drawing Tools Implementation
+// IIFE wrapper to prevent global conflicts
+(function() {
+    'use strict';
+    
+    // Check if DrawingTools already exists
+    if (window.DrawingTools) {
+        console.log('DrawingTools already exists, skipping redefinition');
+        return;
+    }
+
 class DrawingTools {
     constructor(canvas, ctx) {
         this.canvas = canvas;
@@ -338,3 +348,14 @@ class LineTool extends BaseTool {
         this.ctx.setLineDash([]);
     }
 }
+
+// Expose classes to global scope
+window.DrawingTools = DrawingTools;
+window.BaseTool = BaseTool;
+window.BrushTool = BrushTool;
+window.PenTool = PenTool;
+window.RectangleTool = RectangleTool;
+window.CircleTool = CircleTool;
+window.LineTool = LineTool;
+
+})(); // End of IIFE
