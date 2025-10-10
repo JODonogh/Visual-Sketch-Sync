@@ -3,18 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' vscode-resource:; script-src 'unsafe-inline' vscode-resource:; img-src vscode-resource: data:; font-src vscode-resource:">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' vscode-resource:; script-src 'unsafe-inline' vscode-resource:; img-src vscode-resource: data:; font-src vscode-resource:; connect-src vscode-resource:; media-src vscode-resource:; object-src 'none'; base-uri 'none'; form-action 'none'">
     <title>VSS Drawing Canvas</title>
     
-    <!-- Load core initialization systems in proper order -->
-    <script src="stylesheet-loader.js"></script>
-    <script src="css-initialization.js"></script>
-    <script src="script-loading-coordinator.js"></script>
-    <script src="resource-uri-builder.js"></script>
-    <script src="vscode-api-manager.js"></script>
+    <!-- Load main styles -->
+    <link rel="stylesheet" href="main-styles.css">
     
-    <!-- Load centralized initialization manager -->
-    <script src="initialization-manager.js"></script>
+    <!-- Load core initialization systems in proper order -->
+    <!-- Scripts will be loaded dynamically with proper vscode-resource URIs -->
+    <script>
+        // Get the proper vscode-resource base URI
+        const getResourceUri = (path) => {
+            // Try multiple approaches to get the correct URI
+            
+            // Approach 1: Use acquireVsCodeApi if available
+            if (typeof acquireVsCodeApi === 'function') {
+                try {
+                    const vscode = acquireVsCodeApi();
+                    if (vscode && vscode.asWebviewUri) {
+                        // This would be the proper way, but may not be available in all contexts
+                        return vscode.asWebviewUri(path).toString();
+                    }
+                } catch (e) {
+                    console.warn('Could not use vscode.asWebviewUri:', e);
+                }
+            }
+            
+            // Approach 2: Extract from current URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const baseAuthority = urlParams.get('vscode-resource-base-authority');
+            if (baseAuthority) {
+                const basePath = window.location.pathname.replace('/index.html', '');
+                return `https://${baseAuthority}/file${basePath}/${path}`;
+            }
+            
+            // Approach 3: Use relative path as fallback (may work in some contexts)
+            console.warn('Using relative path fallback for:', path);
+            return path;
+        };
+
+        // Load scripts in proper order with error handling and fallbacks
+        const loadScript = (src) => {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                const resourceUri = getResourceUri(src);
+                
+                console.log(`Loading script: ${src} -> ${resourceUri}`);
+                script.src = resourceUri;
+                
+                script.onload = () => {
+                    console.log(`Successfully loaded: ${src}`);
+                    resolve();
+                };
+                
+                script.onerror = (error) => {
+                    console.error(`Failed to load script: ${src} from ${resourceUri}`, error);
+                    
+                    // Try fallback with relative path if the resource URI failed
+                    if (resourceUri !== src) {
+                        console.log(`Trying fallback relative path for: ${src}`);
+                        const fallbackScript = document.createElement('script');
+                        fallbackScript.src = src;
+                        
+                        fallbackScript.onload = () => {
+                            console.log(`Fallback successful for: ${src}`);
+                            resolve();
+                        };
+                        
+                        fallbackScript.onerror = () => {
+                            reject(new Error(`Failed to load ${src} (both resource URI and relative path failed)`));
+                        };
+                        
+                        document.head.appendChild(fallbackScript);
+                    } else {
+                        reject(new Error(`Failed to load ${src}`));
+                    }
+                };
+                
+                document.head.appendChild(script);
+            });
+        };
+
+        // Load all required scripts in sequence
+        const loadAllScripts = async () => {
+            try {
+                console.log('Loading webview scripts with proper vscode-resource URIs...');
+                
+                // Load core scripts in dependency order
+                await loadScript('diagnostic-logger.js');
+                await loadScript('vscode-api-manager.js');
+                await loadScript('resource-uri-builder.js');
+                await loadScript('stylesheet-loader.js');
+                await loadScript('css-initialization.js');
+                await loadScript('csp-violation-handler.js');
+                await loadScript('script-loading-coordinator.js');
+                await loadScript('error-recovery-manager.js');
+                await loadScript('initialization-manager.js');
+                
+                console.log('All webview scripts loaded successfully');
+                
+                // Initialize the webview
+                if (window.InitializationManager) {
+                    const manager = window.InitializationManager.getInstance();
+                    await manager.initialize();
+                } else {
+                    throw new Error('InitializationManager not available after script loading');
+                }
+                
+            } catch (error) {
+                console.error('Failed to load webview scripts:', error);
+                
+                // Show error screen with detailed information
+                const errorScreen = document.getElementById('error-screen');
+                const loadingScreen = document.getElementById('loading-screen');
+                
+                if (errorScreen && loadingScreen) {
+                    loadingScreen.style.display = 'none';
+                    errorScreen.style.display = 'flex';
+                    
+                    const errorMessage = document.getElementById('error-message');
+                    const errorStack = document.getElementById('error-stack');
+                    
+                    if (errorMessage) {
+                        errorMessage.textContent = `Script loading failed: ${error.message}`;
+                    }
+                    
+                    if (errorStack) {
+                        errorStack.textContent = `Error details:\n${error.stack || 'No stack trace available'}\n\nThis may be due to Content Security Policy restrictions or incorrect resource URIs.`;
+                    }
+                    
+                    // Add retry functionality
+                    const retryButton = document.getElementById('retry-button');
+                    if (retryButton) {
+                        retryButton.onclick = () => {
+                            errorScreen.style.display = 'none';
+                            loadingScreen.style.display = 'flex';
+                            setTimeout(loadAllScripts, 1000);
+                        };
+                    }
+                }
+            }
+        };
+
+        // Start loading when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadAllScripts);
+        } else {
+            loadAllScripts();
+        }
+    </script>
 </head>
 <body>
     <div id="loading-screen" class="loading-screen">
@@ -27,7 +164,7 @@
         </div>
     </div>
     
-    <div id="error-screen" class="error-screen" style="display: none;">
+    <div id="error-screen" class="error-screen hidden">
         <div class="error-content">
             <h2>⚠️ Canvas Error</h2>
             <div id="error-message" class="error-message"></div>
@@ -60,154 +197,154 @@
         </div>
         
         <!-- Settings Panel -->
-        <div id="settings-panel" style="display: none; position: absolute; top: 100px; left: 10px; width: 250px; background: rgba(30, 30, 30, 0.95); border: 1px solid #555; border-radius: 8px; padding: 15px; z-index: 150;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 style="margin: 0; color: #cccccc; font-size: 16px;">Drawing Settings</h3>
-                <button id="close-settings" style="background: none; border: none; color: #999; cursor: pointer; font-size: 16px;">✕</button>
+        <div id="settings-panel" class="settings-panel">
+            <div class="settings-header">
+                <h3 class="settings-title">Drawing Settings</h3>
+                <button id="close-settings" class="close-settings-btn">✕</button>
             </div>
             
             <!-- Stroke Size -->
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 5px;">Stroke Size: <span id="stroke-size-value">5</span>px</label>
-                <input type="range" id="stroke-size" min="1" max="50" value="5" style="width: 100%; background: #3c3c3c;">
-                <div style="display: flex; justify-content: space-between; font-size: 10px; color: #999; margin-top: 2px;">
+            <div class="setting-group">
+                <label class="setting-label">Stroke Size: <span id="stroke-size-value">5</span>px</label>
+                <input type="range" id="stroke-size" min="1" max="50" value="5" class="setting-range">
+                <div class="range-labels">
                     <span>1px</span>
                     <span>50px</span>
                 </div>
             </div>
             
             <!-- Opacity -->
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 5px;">Opacity: <span id="opacity-value">100</span>%</label>
-                <input type="range" id="opacity" min="10" max="100" value="100" style="width: 100%; background: #3c3c3c;">
+            <div class="setting-group">
+                <label class="setting-label">Opacity: <span id="opacity-value">100</span>%</label>
+                <input type="range" id="opacity" min="10" max="100" value="100" class="setting-range">
             </div>
             
             <!-- Color Picker -->
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 5px;">Color</label>
-                <div style="display: flex; gap: 5px; flex-wrap: wrap;">
-                    <input type="color" id="color-picker" value="#000000" style="width: 40px; height: 30px; border: none; border-radius: 4px; cursor: pointer;">
-                    <button class="color-preset" data-color="#000000" style="width: 25px; height: 25px; background: #000000; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
-                    <button class="color-preset" data-color="#ff0000" style="width: 25px; height: 25px; background: #ff0000; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
-                    <button class="color-preset" data-color="#00ff00" style="width: 25px; height: 25px; background: #00ff00; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
-                    <button class="color-preset" data-color="#0000ff" style="width: 25px; height: 25px; background: #0000ff; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
-                    <button class="color-preset" data-color="#ffff00" style="width: 25px; height: 25px; background: #ffff00; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
-                    <button class="color-preset" data-color="#ff00ff" style="width: 25px; height: 25px; background: #ff00ff; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
-                    <button class="color-preset" data-color="#00ffff" style="width: 25px; height: 25px; background: #00ffff; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
-                    <button class="color-preset" data-color="#ffffff" style="width: 25px; height: 25px; background: #ffffff; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
+            <div class="setting-group">
+                <label class="setting-label">Color</label>
+                <div class="color-picker-container">
+                    <input type="color" id="color-picker" value="#000000" class="color-picker">
+                    <button class="color-preset" data-color="#000000"></button>
+                    <button class="color-preset" data-color="#ff0000"></button>
+                    <button class="color-preset" data-color="#00ff00"></button>
+                    <button class="color-preset" data-color="#0000ff"></button>
+                    <button class="color-preset" data-color="#ffff00"></button>
+                    <button class="color-preset" data-color="#ff00ff"></button>
+                    <button class="color-preset" data-color="#00ffff"></button>
+                    <button class="color-preset" data-color="#ffffff"></button>
                 </div>
             </div>
             
             <!-- Pressure Sensitivity -->
-            <div style="margin-bottom: 15px;">
-                <label style="display: flex; align-items: center; color: #cccccc; font-size: 12px; margin-bottom: 8px;">
-                    <input type="checkbox" id="pressure-sensitivity" checked style="margin-right: 8px;">
+            <div class="setting-group">
+                <label class="setting-label-flex">
+                    <input type="checkbox" id="pressure-sensitivity" checked class="checkbox-input">
                     Enable Pressure Sensitivity
                 </label>
                 
                 <!-- Pressure Range Controls -->
-                <div id="pressure-range-controls" style="margin-left: 20px;">
-                    <div style="margin-bottom: 10px;">
-                        <label style="display: block; color: #cccccc; font-size: 11px; margin-bottom: 4px;">Min Pressure: <span id="min-pressure-value">10</span>%</label>
-                        <input type="range" id="min-pressure" min="1" max="50" value="10" style="width: 100%; background: #3c3c3c;">
+                <div id="pressure-range-controls" class="pressure-controls">
+                    <div class="pressure-control-group">
+                        <label class="setting-label-small">Min Pressure: <span id="min-pressure-value">10</span>%</label>
+                        <input type="range" id="min-pressure" min="1" max="50" value="10" class="setting-range">
                     </div>
                     
-                    <div style="margin-bottom: 10px;">
-                        <label style="display: block; color: #cccccc; font-size: 11px; margin-bottom: 4px;">Max Pressure: <span id="max-pressure-value">100</span>%</label>
-                        <input type="range" id="max-pressure" min="50" max="100" value="100" style="width: 100%; background: #3c3c3c;">
+                    <div class="pressure-control-group">
+                        <label class="setting-label-small">Max Pressure: <span id="max-pressure-value">100</span>%</label>
+                        <input type="range" id="max-pressure" min="50" max="100" value="100" class="setting-range">
                     </div>
                     
                     <!-- Mouse Speed Simulation -->
-                    <div style="margin-bottom: 10px;">
-                        <label style="display: flex; align-items: center; color: #cccccc; font-size: 11px; margin-bottom: 4px;">
-                            <input type="checkbox" id="mouse-speed-pressure" checked style="margin-right: 6px;">
+                    <div class="pressure-control-group">
+                        <label class="setting-label-small-flex">
+                            <input type="checkbox" id="mouse-speed-pressure" checked class="checkbox-input-small">
                             Mouse Speed Simulation
                         </label>
-                        <div style="font-size: 9px; color: #999;">Simulate pressure based on drawing speed</div>
+                        <div class="setting-description">Simulate pressure based on drawing speed</div>
                     </div>
                     
                     <!-- Real-time Feedback -->
-                    <div style="margin-bottom: 10px;">
-                        <label style="display: flex; align-items: center; color: #cccccc; font-size: 11px;">
-                            <input type="checkbox" id="pressure-feedback" checked style="margin-right: 6px;">
+                    <div class="pressure-control-group">
+                        <label class="setting-label-small-flex">
+                            <input type="checkbox" id="pressure-feedback" checked class="checkbox-input-small">
                             Real-time Feedback
                         </label>
-                        <div style="font-size: 9px; color: #999;">Show pressure indicator and cursor</div>
+                        <div class="setting-description">Show pressure indicator and cursor</div>
                     </div>
                 </div>
                 
-                <div style="font-size: 10px; color: #999; margin-top: 6px;">Works with pressure-sensitive stylus/tablet</div>
+                <div class="setting-note">Works with pressure-sensitive stylus/tablet</div>
             </div>
             
             <!-- Smoothing -->
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 5px;">Smoothing: <span id="smoothing-value">50</span>%</label>
-                <input type="range" id="smoothing" min="0" max="100" value="50" style="width: 100%; background: #3c3c3c;">
+            <div class="setting-group">
+                <label class="setting-label">Smoothing: <span id="smoothing-value">50</span>%</label>
+                <input type="range" id="smoothing" min="0" max="100" value="50" class="setting-range">
             </div>
             
             <!-- Shape Fill Mode -->
-            <div id="shape-fill-mode" style="margin-bottom: 15px; display: none;">
-                <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 8px;">Fill Mode</label>
-                <div style="display: flex; gap: 5px;">
-                    <button id="fill-outline" class="fill-mode-btn active" data-mode="outline" style="flex: 1; padding: 6px; background: #007acc; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 11px;">Outline</button>
-                    <button id="fill-filled" class="fill-mode-btn" data-mode="filled" style="flex: 1; padding: 6px; background: #3c3c3c; color: #cccccc; border: none; border-radius: 3px; cursor: pointer; font-size: 11px;">Filled</button>
-                    <button id="fill-both" class="fill-mode-btn" data-mode="both" style="flex: 1; padding: 6px; background: #3c3c3c; color: #cccccc; border: none; border-radius: 3px; cursor: pointer; font-size: 11px;">Both</button>
+            <div id="shape-fill-mode" class="setting-group hidden">
+                <label class="setting-label">Fill Mode</label>
+                <div class="fill-mode-buttons">
+                    <button id="fill-outline" class="fill-mode-btn active" data-mode="outline">Outline</button>
+                    <button id="fill-filled" class="fill-mode-btn" data-mode="filled">Filled</button>
+                    <button id="fill-both" class="fill-mode-btn" data-mode="both">Both</button>
                 </div>
             </div>
             
             <!-- Stroke Color (for shapes) -->
-            <div id="stroke-color-section" style="margin-bottom: 15px; display: none;">
-                <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 5px;">Stroke Color</label>
-                <div style="display: flex; gap: 5px; flex-wrap: wrap;">
-                    <input type="color" id="stroke-color-picker" value="#000000" style="width: 40px; height: 30px; border: none; border-radius: 4px; cursor: pointer;">
-                    <button class="stroke-color-preset" data-color="#000000" style="width: 25px; height: 25px; background: #000000; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
-                    <button class="stroke-color-preset" data-color="#ff0000" style="width: 25px; height: 25px; background: #ff0000; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
-                    <button class="stroke-color-preset" data-color="#00ff00" style="width: 25px; height: 25px; background: #00ff00; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
-                    <button class="stroke-color-preset" data-color="#0000ff" style="width: 25px; height: 25px; background: #0000ff; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
-                    <button class="stroke-color-preset" data-color="#ffff00" style="width: 25px; height: 25px; background: #ffff00; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
-                    <button class="stroke-color-preset" data-color="#ff00ff" style="width: 25px; height: 25px; background: #ff00ff; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
-                    <button class="stroke-color-preset" data-color="#00ffff" style="width: 25px; height: 25px; background: #00ffff; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
-                    <button class="stroke-color-preset" data-color="#ffffff" style="width: 25px; height: 25px; background: #ffffff; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
+            <div id="stroke-color-section" class="setting-group hidden">
+                <label class="setting-label">Stroke Color</label>
+                <div class="color-picker-container">
+                    <input type="color" id="stroke-color-picker" value="#000000" class="color-picker">
+                    <button class="stroke-color-preset" data-color="#000000"></button>
+                    <button class="stroke-color-preset" data-color="#ff0000"></button>
+                    <button class="stroke-color-preset" data-color="#00ff00"></button>
+                    <button class="stroke-color-preset" data-color="#0000ff"></button>
+                    <button class="stroke-color-preset" data-color="#ffff00"></button>
+                    <button class="stroke-color-preset" data-color="#ff00ff"></button>
+                    <button class="stroke-color-preset" data-color="#00ffff"></button>
+                    <button class="stroke-color-preset" data-color="#ffffff"></button>
                 </div>
             </div>
             
             <!-- Fill Color (shown when fill mode is not outline) -->
-            <div id="fill-color-section" style="margin-bottom: 15px; display: none;">
-                <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 5px;">Fill Color</label>
-                <div style="display: flex; gap: 5px; flex-wrap: wrap;">
-                    <input type="color" id="fill-color-picker" value="#000000" style="width: 40px; height: 30px; border: none; border-radius: 4px; cursor: pointer;">
-                    <button class="fill-color-preset" data-color="#000000" style="width: 25px; height: 25px; background: #000000; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
-                    <button class="fill-color-preset" data-color="#ff0000" style="width: 25px; height: 25px; background: #ff0000; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
-                    <button class="fill-color-preset" data-color="#00ff00" style="width: 25px; height: 25px; background: #00ff00; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
-                    <button class="fill-color-preset" data-color="#0000ff" style="width: 25px; height: 25px; background: #0000ff; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
-                    <button class="fill-color-preset" data-color="#ffff00" style="width: 25px; height: 25px; background: #ffff00; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
-                    <button class="fill-color-preset" data-color="#ff00ff" style="width: 25px; height: 25px; background: #ff00ff; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
-                    <button class="fill-color-preset" data-color="#00ffff" style="width: 25px; height: 25px; background: #00ffff; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
-                    <button class="fill-color-preset" data-color="#ffffff" style="width: 25px; height: 25px; background: #ffffff; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
+            <div id="fill-color-section" class="setting-group hidden">
+                <label class="setting-label">Fill Color</label>
+                <div class="color-picker-container">
+                    <input type="color" id="fill-color-picker" value="#000000" class="color-picker">
+                    <button class="fill-color-preset" data-color="#000000"></button>
+                    <button class="fill-color-preset" data-color="#ff0000"></button>
+                    <button class="fill-color-preset" data-color="#00ff00"></button>
+                    <button class="fill-color-preset" data-color="#0000ff"></button>
+                    <button class="fill-color-preset" data-color="#ffff00"></button>
+                    <button class="fill-color-preset" data-color="#ff00ff"></button>
+                    <button class="fill-color-preset" data-color="#00ffff"></button>
+                    <button class="fill-color-preset" data-color="#ffffff"></button>
                 </div>
             </div>
             
             <!-- Corner Radius (for rectangles) -->
-            <div id="corner-radius-section" style="margin-bottom: 15px; display: none;">
-                <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 5px;">Corner Radius: <span id="corner-radius-value">0</span>px</label>
-                <input type="range" id="corner-radius" min="0" max="50" value="0" style="width: 100%; background: #3c3c3c;">
-                <div style="display: flex; justify-content: space-between; font-size: 10px; color: #999; margin-top: 2px;">
+            <div id="corner-radius-section" class="setting-group hidden">
+                <label class="setting-label">Corner Radius: <span id="corner-radius-value">0</span>px</label>
+                <input type="range" id="corner-radius" min="0" max="50" value="0" class="setting-range">
+                <div class="range-labels">
                     <span>0px</span>
                     <span>50px</span>
                 </div>
             </div>
             
             <!-- Ellipse Aspect Ratio (for circles/ellipses) -->
-            <div id="ellipse-aspect-section" style="margin-bottom: 15px; display: none;">
-                <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 8px;">Ellipse Mode</label>
-                <div style="display: flex; gap: 5px; margin-bottom: 10px;">
-                    <button id="ellipse-circle" class="ellipse-mode-btn active" data-mode="circle" style="flex: 1; padding: 6px; background: #007acc; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 11px;">Circle</button>
-                    <button id="ellipse-free" class="ellipse-mode-btn" data-mode="free" style="flex: 1; padding: 6px; background: #3c3c3c; color: #cccccc; border: none; border-radius: 3px; cursor: pointer; font-size: 11px;">Free Ellipse</button>
+            <div id="ellipse-aspect-section" class="setting-group hidden">
+                <label class="setting-label">Ellipse Mode</label>
+                <div class="ellipse-mode-buttons">
+                    <button id="ellipse-circle" class="ellipse-mode-btn active" data-mode="circle">Circle</button>
+                    <button id="ellipse-free" class="ellipse-mode-btn" data-mode="free">Free Ellipse</button>
                 </div>
-                <div id="aspect-ratio-controls" style="display: none;">
-                    <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 5px;">Aspect Ratio: <span id="aspect-ratio-value">1.0</span></label>
-                    <input type="range" id="aspect-ratio" min="0.2" max="5.0" step="0.1" value="1.0" style="width: 100%; background: #3c3c3c;">
-                    <div style="display: flex; justify-content: space-between; font-size: 10px; color: #999; margin-top: 2px;">
+                <div id="aspect-ratio-controls" class="aspect-ratio-controls">
+                    <label class="setting-label">Aspect Ratio: <span id="aspect-ratio-value">1.0</span></label>
+                    <input type="range" id="aspect-ratio" min="0.2" max="5.0" step="0.1" value="1.0" class="setting-range">
+                    <div class="range-labels">
                         <span>0.2 (tall)</span>
                         <span>5.0 (wide)</span>
                     </div>
@@ -218,36 +355,36 @@
         <canvas id="drawing-canvas"></canvas>
         
         <!-- Pressure Sensitivity Indicator -->
-        <div id="pressure-indicator" style="display: none; position: absolute; bottom: 20px; left: 20px; width: 200px; background: rgba(30, 30, 30, 0.9); border: 1px solid #555; border-radius: 6px; padding: 10px; z-index: 200;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span style="color: #cccccc; font-size: 12px; font-weight: 500;">Pressure</span>
-                <span id="pressure-value" style="color: #cccccc; font-size: 12px;">50%</span>
+        <div id="pressure-indicator" class="pressure-indicator">
+            <div class="pressure-header">
+                <span class="pressure-label">Pressure</span>
+                <span id="pressure-value" class="pressure-value">50%</span>
             </div>
-            <div style="width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden;">
-                <div class="pressure-bar" style="height: 100%; width: 50%; background: #28a745; transition: width 0.1s ease, background-color 0.1s ease;"></div>
+            <div class="pressure-bar-container">
+                <div class="pressure-bar"></div>
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
-                <span class="device-label" style="color: #999; font-size: 10px;">Mouse (Speed)</span>
-                <span style="color: #999; font-size: 10px;">Real-time</span>
+            <div class="pressure-footer">
+                <span class="device-label">Mouse (Speed)</span>
+                <span class="realtime-label">Real-time</span>
             </div>
         </div>
         
         <!-- Code Generation Panel -->
-        <div id="code-panel" style="display: none; position: absolute; right: 10px; top: 50px; width: 300px; max-height: 400px; background: rgba(30, 30, 30, 0.95); border: 1px solid #555; border-radius: 8px; padding: 10px; z-index: 200;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <h3 style="margin: 0; color: #cccccc; font-size: 14px;">Generated Code</h3>
-                <button id="close-code-panel" style="background: none; border: none; color: #999; cursor: pointer; font-size: 16px;">✕</button>
+        <div id="code-panel" class="code-panel">
+            <div class="code-header">
+                <h3 class="code-title">Generated Code</h3>
+                <button id="close-code-panel" class="close-code-btn">✕</button>
             </div>
-            <select id="code-language" style="width: 100%; margin-bottom: 10px; background: #3c3c3c; color: #cccccc; border: 1px solid #555; padding: 5px;">
+            <select id="code-language" class="code-language-select">
                 <option value="html">HTML Canvas</option>
                 <option value="svg">SVG</option>
                 <option value="css">CSS</option>
                 <option value="javascript">JavaScript</option>
             </select>
-            <textarea id="code-output" readonly style="width: 100%; height: 250px; background: #1a1a1a; color: #cccccc; border: 1px solid #555; padding: 8px; font-family: 'Courier New', monospace; font-size: 12px; resize: vertical;"></textarea>
-            <div style="margin-top: 10px;">
-                <button id="copy-code" style="background: #007acc; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">Copy Code</button>
-                <button id="refresh-code" style="background: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-left: 5px;">Refresh</button>
+            <textarea id="code-output" readonly class="code-output"></textarea>
+            <div class="code-actions">
+                <button id="copy-code" class="copy-code-btn">Copy Code</button>
+                <button id="refresh-code" class="refresh-code-btn">Refresh</button>
             </div>
         </div>
     </div>

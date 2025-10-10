@@ -1019,16 +1019,7 @@ class InitializationManager {
 // Make InitializationManager globally available
 window.InitializationManager = InitializationManager;
 
-// Auto-initialize when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        const manager = InitializationManager.getInstance();
-        manager.initialize();
-    });
-} else {
-    // DOM already loaded
-    const manager = InitializationManager.getInstance();
-    manager.initialize();
-}
+// Note: Initialization is now handled by the HTML file's script loading system
+// This prevents double initialization and ensures proper script loading order
 
 console.log('InitializationManager: Class loaded and ready');
