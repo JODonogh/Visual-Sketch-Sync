@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Generation Test</title>
+</head>
+<body>
+    <h1>Safe Code Generation Test</h1>
+    <div id="test-results"></div>
+    
+    <script src="safe-code-generator.js"></script>
+    <script src="safe-template-system.js"></script>
+    <script src="code-generation-error-handler.js"></script>
+    
+    <script>
+        // Test the safe code generation system
+        async function runTests() {
+            const results = document.getElementById('test-results');
+            
+            try {
+                // Test data
+                const testElements = [
+                    {
+                        type: 'rectangle',
+                        x: 10,
+                        y: 20,
+                        width: 100,
+                        height: 50,
+                        strokeColor: '#000000',
+                        fillColor: '#ff0000',
+                        fillMode: 'both',
+                        strokeWidth: 2
+                    },
+                    {
+                        type: 'circle',
+                        x: 150,
+                        y: 100,
+                        radius: 30,
+                        strokeColor: '#0000ff',
+                        fillMode: 'outline',
+                        strokeWidth: 3
+                    },
+                    {
+                        type: 'line',
+                        startX: 200,
+                        startY: 50,
+                        endX: 300,
+                        endY: 150,
+                        strokeColor: '#00ff00',
+                        strokeWidth: 4
+                    }
+                ];
+                
+                // Test SafeCodeGenerator
+                console.log('Testing SafeCodeGenerator...');
+                const generator = new SafeCodeGenerator();
+                
+                const htmlCode = generator.generateHTML(testElements, 800, 600);
+                const svgCode = generator.generateSVG(testElements, 800, 600);
+                const cssCode = generator.generateCSS(testElements);
+                const jsCode = generator.generateJavaScript(testElements);
+                
+                results.innerHTML += '<h2>✅ SafeCodeGenerator Tests Passed</h2>';
+                results.innerHTML += `<p>HTML: ${htmlCode.length} chars</p>`;
+                results.innerHTML += `<p>SVG: ${svgCode.length} chars</p>`;
+                results.innerHTML += `<p>CSS: ${cssCode.length} chars</p>`;
+                results.innerHTML += `<p>JavaScript: ${jsCode.length} chars</p>`;
+                
+                // Test SafeTemplateSystem
+                console.log('Testing SafeTemplateSystem...');
+                const templateSystem = new SafeTemplateSystem();
+                
+                const htmlTemplate = templateSystem.getTemplate('html');
+                const validation = templateSystem.validateTemplate('html', htmlTemplate);
+                
+                results.innerHTML += '<h2>✅ SafeTemplateSystem Tests Passed</h2>';
+                results.innerHTML += `<p>Template validation: ${validation.isValid ? 'Valid' : 'Invalid'}</p>`;
+                results.innerHTML += `<p>Errors: ${validation.errors.length}</p>`;
+                results.innerHTML += `<p>Warnings: ${validation.warnings.length}</p>`;
+                
+                // Test CodeGenerationErrorHandler
+                console.log('Testing CodeGenerationErrorHandler...');
+                const errorHandler = new CodeGenerationErrorHandler();
+                
+                const testResult = await errorHandler.executeWithErrorHandling(
+                    (elements) => generator.generateHTML(elements, 800, 600),
+                    testElements,
+                    { outputType: 'html', canvasWidth: 800, canvasHeight: 600 }
+                );
+                
+                results.innerHTML += '<h2>✅ CodeGenerationErrorHandler Tests Passed</h2>';
+                results.innerHTML += `<p>Success: ${testResult.success}</p>`;
+                results.innerHTML += `<p>Result length: ${testResult.result ? testResult.result.length : 0} chars</p>`;
+                results.innerHTML += `<p>Execution time: ${testResult.executionTime}ms</p>`;
+                
+                results.innerHTML += '<h2>🎉 All Tests Passed!</h2>';
+                results.innerHTML += '<p>The robust code generation system is working correctly.</p>';
+                
+            } catch (error) {
+                results.innerHTML += `<h2>❌ Test Failed</h2>`;
+                results.innerHTML += `<p>Error: ${error.message}</p>`;
+                console.error('Test error:', error);
+            }
+        }
+        
+        // Run tests when page loads
+        window.addEventListener('load', runTests);
+    </script>
+</body>
+</html>

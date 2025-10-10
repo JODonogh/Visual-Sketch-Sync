@@ -50,21 +50,28 @@
             top: 50px;
             left: 10px;
             background: rgba(30, 30, 30, 0.9);
-            border-radius: 8px;
-            padding: 10px;
+            border-radius: 6px;
+            padding: 6px;
             display: flex;
-            gap: 10px;
+            gap: 6px;
             z-index: 100;
+            height: 30px;
+            align-items: center;
         }
         
         .tool-button {
             background: #3c3c3c;
             border: none;
             color: #cccccc;
-            padding: 8px 12px;
-            border-radius: 4px;
+            padding: 4px 8px;
+            border-radius: 3px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 11px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 24px;
         }
         
         .tool-button:hover {
@@ -73,6 +80,37 @@
         
         .tool-button.active {
             background: #007acc;
+        }
+        
+        /* Responsive design for compact toolbar */
+        @media (max-width: 768px) {
+            .toolbar {
+                gap: 4px;
+                padding: 4px;
+                height: 28px;
+            }
+            
+            .tool-button {
+                padding: 3px 6px;
+                font-size: 10px;
+                height: 22px;
+                min-width: 22px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .toolbar {
+                gap: 3px;
+                padding: 3px;
+                height: 26px;
+            }
+            
+            .tool-button {
+                padding: 2px 4px;
+                font-size: 9px;
+                height: 20px;
+                min-width: 20px;
+            }
         }
         
         .connection-status {
@@ -246,6 +284,59 @@
         .error-screen:not([style*="display: none"]) ~ #canvas-container {
             display: none;
         }
+        
+        /* Pressure Sensitivity Styles */
+        #pressure-indicator {
+            transition: opacity 0.3s ease;
+        }
+        
+        #pressure-indicator.active {
+            display: block !important;
+            opacity: 1;
+        }
+        
+        #pressure-indicator:not(.active) {
+            opacity: 0;
+        }
+        
+        .pressure-bar {
+            transition: width 0.1s ease, background-color 0.1s ease;
+        }
+        
+        #pressure-cursor {
+            transition: width 0.1s ease, height 0.1s ease;
+        }
+        
+        /* Settings panel pressure controls */
+        #pressure-range-controls {
+            transition: opacity 0.3s ease;
+        }
+        
+        #pressure-range-controls input[type="range"] {
+            height: 4px;
+            border-radius: 2px;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        
+        #pressure-range-controls input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #007acc;
+            cursor: pointer;
+        }
+        
+        #pressure-range-controls input[type="range"]::-moz-range-thumb {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #007acc;
+            cursor: pointer;
+            border: none;
+        }
     </style>
 </head>
 <body>
@@ -282,7 +373,6 @@
         
         <div class="toolbar">
             <button class="tool-button active" data-tool="pen" id="pen-tool">✏️ Pen</button>
-            <button class="tool-button" data-tool="brush" id="brush-tool">🖌️ Brush</button>
             <button class="tool-button" data-tool="rectangle" id="rectangle-tool">⬜ Rectangle</button>
             <button class="tool-button" data-tool="circle" id="circle-tool">⭕ Circle</button>
             <button class="tool-button" data-tool="line" id="line-tool">📏 Line</button>
@@ -299,10 +389,10 @@
                 <button id="close-settings" style="background: none; border: none; color: #999; cursor: pointer; font-size: 16px;">✕</button>
             </div>
             
-            <!-- Brush Size -->
+            <!-- Stroke Size -->
             <div style="margin-bottom: 15px;">
-                <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 5px;">Brush Size: <span id="brush-size-value">5</span>px</label>
-                <input type="range" id="brush-size" min="1" max="50" value="5" style="width: 100%; background: #3c3c3c;">
+                <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 5px;">Stroke Size: <span id="stroke-size-value">5</span>px</label>
+                <input type="range" id="stroke-size" min="1" max="50" value="5" style="width: 100%; background: #3c3c3c;">
                 <div style="display: flex; justify-content: space-between; font-size: 10px; color: #999; margin-top: 2px;">
                     <span>1px</span>
                     <span>50px</span>
@@ -333,21 +423,137 @@
             
             <!-- Pressure Sensitivity -->
             <div style="margin-bottom: 15px;">
-                <label style="display: flex; align-items: center; color: #cccccc; font-size: 12px;">
+                <label style="display: flex; align-items: center; color: #cccccc; font-size: 12px; margin-bottom: 8px;">
                     <input type="checkbox" id="pressure-sensitivity" checked style="margin-right: 8px;">
                     Enable Pressure Sensitivity
                 </label>
-                <div style="font-size: 10px; color: #999; margin-top: 3px;">Works with pressure-sensitive stylus/tablet</div>
+                
+                <!-- Pressure Range Controls -->
+                <div id="pressure-range-controls" style="margin-left: 20px;">
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: block; color: #cccccc; font-size: 11px; margin-bottom: 4px;">Min Pressure: <span id="min-pressure-value">10</span>%</label>
+                        <input type="range" id="min-pressure" min="1" max="50" value="10" style="width: 100%; background: #3c3c3c;">
+                    </div>
+                    
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: block; color: #cccccc; font-size: 11px; margin-bottom: 4px;">Max Pressure: <span id="max-pressure-value">100</span>%</label>
+                        <input type="range" id="max-pressure" min="50" max="100" value="100" style="width: 100%; background: #3c3c3c;">
+                    </div>
+                    
+                    <!-- Mouse Speed Simulation -->
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: flex; align-items: center; color: #cccccc; font-size: 11px; margin-bottom: 4px;">
+                            <input type="checkbox" id="mouse-speed-pressure" checked style="margin-right: 6px;">
+                            Mouse Speed Simulation
+                        </label>
+                        <div style="font-size: 9px; color: #999;">Simulate pressure based on drawing speed</div>
+                    </div>
+                    
+                    <!-- Real-time Feedback -->
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: flex; align-items: center; color: #cccccc; font-size: 11px;">
+                            <input type="checkbox" id="pressure-feedback" checked style="margin-right: 6px;">
+                            Real-time Feedback
+                        </label>
+                        <div style="font-size: 9px; color: #999;">Show pressure indicator and cursor</div>
+                    </div>
+                </div>
+                
+                <div style="font-size: 10px; color: #999; margin-top: 6px;">Works with pressure-sensitive stylus/tablet</div>
             </div>
             
             <!-- Smoothing -->
-            <div style="margin-bottom: 10px;">
+            <div style="margin-bottom: 15px;">
                 <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 5px;">Smoothing: <span id="smoothing-value">50</span>%</label>
                 <input type="range" id="smoothing" min="0" max="100" value="50" style="width: 100%; background: #3c3c3c;">
+            </div>
+            
+            <!-- Shape Fill Mode -->
+            <div id="shape-fill-mode" style="margin-bottom: 15px; display: none;">
+                <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 8px;">Fill Mode</label>
+                <div style="display: flex; gap: 5px;">
+                    <button id="fill-outline" class="fill-mode-btn active" data-mode="outline" style="flex: 1; padding: 6px; background: #007acc; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 11px;">Outline</button>
+                    <button id="fill-filled" class="fill-mode-btn" data-mode="filled" style="flex: 1; padding: 6px; background: #3c3c3c; color: #cccccc; border: none; border-radius: 3px; cursor: pointer; font-size: 11px;">Filled</button>
+                    <button id="fill-both" class="fill-mode-btn" data-mode="both" style="flex: 1; padding: 6px; background: #3c3c3c; color: #cccccc; border: none; border-radius: 3px; cursor: pointer; font-size: 11px;">Both</button>
+                </div>
+            </div>
+            
+            <!-- Stroke Color (for shapes) -->
+            <div id="stroke-color-section" style="margin-bottom: 15px; display: none;">
+                <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 5px;">Stroke Color</label>
+                <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                    <input type="color" id="stroke-color-picker" value="#000000" style="width: 40px; height: 30px; border: none; border-radius: 4px; cursor: pointer;">
+                    <button class="stroke-color-preset" data-color="#000000" style="width: 25px; height: 25px; background: #000000; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
+                    <button class="stroke-color-preset" data-color="#ff0000" style="width: 25px; height: 25px; background: #ff0000; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
+                    <button class="stroke-color-preset" data-color="#00ff00" style="width: 25px; height: 25px; background: #00ff00; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
+                    <button class="stroke-color-preset" data-color="#0000ff" style="width: 25px; height: 25px; background: #0000ff; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
+                    <button class="stroke-color-preset" data-color="#ffff00" style="width: 25px; height: 25px; background: #ffff00; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
+                    <button class="stroke-color-preset" data-color="#ff00ff" style="width: 25px; height: 25px; background: #ff00ff; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
+                    <button class="stroke-color-preset" data-color="#00ffff" style="width: 25px; height: 25px; background: #00ffff; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
+                    <button class="stroke-color-preset" data-color="#ffffff" style="width: 25px; height: 25px; background: #ffffff; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
+                </div>
+            </div>
+            
+            <!-- Fill Color (shown when fill mode is not outline) -->
+            <div id="fill-color-section" style="margin-bottom: 15px; display: none;">
+                <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 5px;">Fill Color</label>
+                <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                    <input type="color" id="fill-color-picker" value="#000000" style="width: 40px; height: 30px; border: none; border-radius: 4px; cursor: pointer;">
+                    <button class="fill-color-preset" data-color="#000000" style="width: 25px; height: 25px; background: #000000; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
+                    <button class="fill-color-preset" data-color="#ff0000" style="width: 25px; height: 25px; background: #ff0000; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
+                    <button class="fill-color-preset" data-color="#00ff00" style="width: 25px; height: 25px; background: #00ff00; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
+                    <button class="fill-color-preset" data-color="#0000ff" style="width: 25px; height: 25px; background: #0000ff; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
+                    <button class="fill-color-preset" data-color="#ffff00" style="width: 25px; height: 25px; background: #ffff00; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
+                    <button class="fill-color-preset" data-color="#ff00ff" style="width: 25px; height: 25px; background: #ff00ff; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
+                    <button class="fill-color-preset" data-color="#00ffff" style="width: 25px; height: 25px; background: #00ffff; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
+                    <button class="fill-color-preset" data-color="#ffffff" style="width: 25px; height: 25px; background: #ffffff; border: 1px solid #555; border-radius: 3px; cursor: pointer;"></button>
+                </div>
+            </div>
+            
+            <!-- Corner Radius (for rectangles) -->
+            <div id="corner-radius-section" style="margin-bottom: 15px; display: none;">
+                <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 5px;">Corner Radius: <span id="corner-radius-value">0</span>px</label>
+                <input type="range" id="corner-radius" min="0" max="50" value="0" style="width: 100%; background: #3c3c3c;">
+                <div style="display: flex; justify-content: space-between; font-size: 10px; color: #999; margin-top: 2px;">
+                    <span>0px</span>
+                    <span>50px</span>
+                </div>
+            </div>
+            
+            <!-- Ellipse Aspect Ratio (for circles/ellipses) -->
+            <div id="ellipse-aspect-section" style="margin-bottom: 15px; display: none;">
+                <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 8px;">Ellipse Mode</label>
+                <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                    <button id="ellipse-circle" class="ellipse-mode-btn active" data-mode="circle" style="flex: 1; padding: 6px; background: #007acc; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 11px;">Circle</button>
+                    <button id="ellipse-free" class="ellipse-mode-btn" data-mode="free" style="flex: 1; padding: 6px; background: #3c3c3c; color: #cccccc; border: none; border-radius: 3px; cursor: pointer; font-size: 11px;">Free Ellipse</button>
+                </div>
+                <div id="aspect-ratio-controls" style="display: none;">
+                    <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 5px;">Aspect Ratio: <span id="aspect-ratio-value">1.0</span></label>
+                    <input type="range" id="aspect-ratio" min="0.2" max="5.0" step="0.1" value="1.0" style="width: 100%; background: #3c3c3c;">
+                    <div style="display: flex; justify-content: space-between; font-size: 10px; color: #999; margin-top: 2px;">
+                        <span>0.2 (tall)</span>
+                        <span>5.0 (wide)</span>
+                    </div>
+                </div>
             </div>
         </div>
         
         <canvas id="drawing-canvas"></canvas>
+        
+        <!-- Pressure Sensitivity Indicator -->
+        <div id="pressure-indicator" style="display: none; position: absolute; bottom: 20px; left: 20px; width: 200px; background: rgba(30, 30, 30, 0.9); border: 1px solid #555; border-radius: 6px; padding: 10px; z-index: 200;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="color: #cccccc; font-size: 12px; font-weight: 500;">Pressure</span>
+                <span id="pressure-value" style="color: #cccccc; font-size: 12px;">50%</span>
+            </div>
+            <div style="width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden;">
+                <div class="pressure-bar" style="height: 100%; width: 50%; background: #28a745; transition: width 0.1s ease, background-color 0.1s ease;"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
+                <span class="device-label" style="color: #999; font-size: 10px;">Mouse (Speed)</span>
+                <span style="color: #999; font-size: 10px;">Real-time</span>
+            </div>
+        </div>
         
         <!-- Code Generation Panel -->
         <div id="code-panel" style="display: none; position: absolute; right: 10px; top: 50px; width: 300px; max-height: 400px; background: rgba(30, 30, 30, 0.95); border: 1px solid #555; border-radius: 8px; padding: 10px; z-index: 200;">
@@ -370,6 +576,26 @@
     </div>
 
     <!-- Error Recovery Manager and Notification System are loaded inline to avoid CSP issues -->
+    
+    <!-- Load persistent drawing manager -->
+    <script src="persistent-drawing-manager.js"></script>
+    
+    <!-- Load tool state manager -->
+    <script src="tool-state-manager.js"></script>
+    
+    <!-- Load pressure sensitivity manager -->
+    <script src="pressure-sensitivity.js"></script>
+    
+    <!-- Load enhanced tool manager -->
+    <script src="enhanced-tool-manager.js"></script>
+    
+    <!-- Load safe code generation system -->
+    <script src="safe-code-generator.js"></script>
+    <script src="safe-template-system.js"></script>
+    <script src="code-generation-error-handler.js"></script>
+    
+    <!-- Load tool integration -->
+    <script src="tool-integration.js"></script>
     
     <script>
         // Simple inline error recovery system to avoid external script CSP issues
@@ -488,13 +714,20 @@
             
             // Drawing settings
             window.VSSCanvas.settings = {
-                brushSize: 5,
+                strokeSize: 5,
                 opacity: 1.0,
                 color: '#000000',
+                fillColor: '#000000',
+                fillMode: 'outline', // 'outline', 'filled', 'both'
+                cornerRadius: 0,
+                ellipseMode: 'circle', // 'circle', 'free'
+                aspectRatio: 1.0,
                 pressureSensitivity: true,
                 smoothing: 0.5,
                 minPressure: 0.1,
-                maxPressure: 1.0
+                maxPressure: 1.0,
+                mouseSpeedPressure: true,
+                pressureFeedback: true
             };
             
             // Pressure and smoothing state
@@ -625,7 +858,7 @@
                     window.VSSCanvas.ctx.lineJoin = 'round';
                     
                     // Apply settings
-                    const baseSize = window.VSSCanvas.settings.brushSize;
+                    const baseSize = window.VSSCanvas.settings.strokeSize;
                     const pressureMultiplier = window.VSSCanvas.settings.pressureSensitivity ? 
                         (pressure * 0.8 + 0.2) : 1.0; // 20% minimum, 100% maximum
                     
@@ -648,7 +881,7 @@
                         }
                     } else {
                         // Direct drawing without smoothing
-                        const baseSize = window.VSSCanvas.settings.brushSize;
+                        const baseSize = window.VSSCanvas.settings.strokeSize;
                         const pressureMultiplier = window.VSSCanvas.settings.pressureSensitivity ? 
                             (pressure * 0.8 + 0.2) : 1.0;
                         
@@ -663,57 +896,8 @@
                         type: 'freehand',
                         tool: 'pen',
                         color: window.VSSCanvas.settings.color,
-                        width: window.VSSCanvas.settings.brushSize,
+                        width: window.VSSCanvas.settings.strokeSize,
                         opacity: window.VSSCanvas.settings.opacity,
-                        timestamp: Date.now()
-                    });
-                    window.VSSCanvas.smoothedPath = [];
-                }
-            },
-            
-            brush: {
-                start: function(x, y, pressure = 0.5) {
-                    window.VSSCanvas.ctx.beginPath();
-                    window.VSSCanvas.ctx.moveTo(x, y);
-                    window.VSSCanvas.ctx.lineCap = 'round';
-                    window.VSSCanvas.ctx.lineJoin = 'round';
-                    
-                    // Brush uses larger base size and more pressure variation
-                    const baseSize = Math.max(window.VSSCanvas.settings.brushSize * 1.5, 8);
-                    const pressureMultiplier = window.VSSCanvas.settings.pressureSensitivity ? 
-                        (pressure * 1.2 + 0.3) : 1.0; // More variation for brush
-                    
-                    window.VSSCanvas.ctx.lineWidth = baseSize * pressureMultiplier;
-                    window.VSSCanvas.ctx.strokeStyle = window.VSSCanvas.settings.color;
-                    window.VSSCanvas.ctx.globalAlpha = window.VSSCanvas.settings.opacity * 0.8; // Slightly transparent for brush effect
-                    
-                    window.VSSCanvas.smoothedPath = [{x, y, pressure}];
-                },
-                draw: function(x, y, pressure = 0.5) {
-                    if (window.VSSCanvas.settings.smoothing > 0) {
-                        window.VSSCanvas.smoothedPath.push({x, y, pressure});
-                        if (window.VSSCanvas.smoothedPath.length >= 3) {
-                            const smoothed = applySmoothingFilter(window.VSSCanvas.smoothedPath);
-                            drawSmoothLine(smoothed);
-                        }
-                    } else {
-                        const baseSize = Math.max(window.VSSCanvas.settings.brushSize * 1.5, 8);
-                        const pressureMultiplier = window.VSSCanvas.settings.pressureSensitivity ? 
-                            (pressure * 1.2 + 0.3) : 1.0;
-                        
-                        window.VSSCanvas.ctx.lineWidth = baseSize * pressureMultiplier;
-                        window.VSSCanvas.ctx.lineTo(x, y);
-                        window.VSSCanvas.ctx.stroke();
-                    }
-                },
-                end: function() {
-                    window.VSSCanvas.ctx.globalAlpha = 1.0;
-                    window.VSSCanvas.drawingElements.push({
-                        type: 'freehand',
-                        tool: 'brush',
-                        color: window.VSSCanvas.settings.color,
-                        width: Math.max(window.VSSCanvas.settings.brushSize * 1.5, 8),
-                        opacity: window.VSSCanvas.settings.opacity * 0.8,
                         timestamp: Date.now()
                     });
                     window.VSSCanvas.smoothedPath = [];
@@ -912,9 +1096,7 @@
                 
                 // Apply pressure to line width
                 if (window.VSSCanvas.settings.pressureSensitivity) {
-                    const baseSize = window.VSSCanvas.currentTool === 'brush' ? 
-                        Math.max(window.VSSCanvas.settings.brushSize * 1.5, 8) : 
-                        window.VSSCanvas.settings.brushSize;
+                    const baseSize = window.VSSCanvas.settings.strokeSize;
                     const pressureMultiplier = point.pressure * 0.8 + 0.2;
                     window.VSSCanvas.ctx.lineWidth = baseSize * pressureMultiplier;
                 }
@@ -963,166 +1145,167 @@
             return 0.5; // Default pressure
         }
         
-        // Code generation function
-        function generateCode() {
+        // Robust code generation function with error handling
+        async function generateCode() {
             const language = document.getElementById('code-language')?.value || 'html';
             const codeOutput = document.getElementById('code-output');
             
-            if (!codeOutput) return;
-            
-            let code = '';
-            
-            switch (language) {
-                case 'html':
-                    code = generateHTMLCode();
-                    break;
-                case 'svg':
-                    code = generateSVGCode();
-                    break;
-                case 'css':
-                    code = generateCSSCode();
-                    break;
-                case 'javascript':
-                    code = generateJavaScriptCode();
-                    break;
+            if (!codeOutput) {
+                console.error('Code output element not found');
+                return;
             }
             
-            codeOutput.value = code;
-        }
-        
-        function generateHTMLCode() {
-            const canvas = window.VSSCanvas.canvas;
-            return `<!DOCTYPE html>
-<html>
-<head>
-    <title>Generated Canvas Drawing</title>
-</head>
-<body>
-    <canvas id="canvas" width="${canvas.width}" height="${canvas.height}" style="border: 1px solid #ccc;"></canvas>
-    <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        // Generated drawing commands
-        ${generateCanvasCommands()}
-    </script>
-</body>
-</html>`;
-        }
-        
-        function generateSVGCode() {
-            const canvas = window.VSSCanvas.canvas;
-            let svgElements = '';
+            // Show loading state
+            codeOutput.value = 'Generating code...';
             
-            window.VSSCanvas.drawingElements.forEach(element => {
-                switch (element.type) {
-                    case 'rectangle':
-                        svgElements += `    <rect x="${element.x}" y="${element.y}" width="${element.width}" height="${element.height}" fill="none" stroke="${element.color}" stroke-width="${element.lineWidth}"/>\n`;
-                        break;
-                    case 'circle':
-                        svgElements += `    <circle cx="${element.x}" cy="${element.y}" r="${element.radius}" fill="none" stroke="${element.color}" stroke-width="${element.lineWidth}"/>\n`;
-                        break;
-                    case 'line':
-                        svgElements += `    <line x1="${element.startX}" y1="${element.startY}" x2="${element.endX}" y2="${element.endY}" stroke="${element.color}" stroke-width="${element.lineWidth}"/>\n`;
-                        break;
+            try {
+                // Initialize error handler if not available
+                if (!window.codeErrorHandler && window.CodeGenerationErrorHandler) {
+                    window.codeErrorHandler = new window.CodeGenerationErrorHandler();
                 }
-            });
+                
+                // Get drawing elements
+                const elements = window.VSSCanvas?.enhancedToolManager?.getAllElements() || 
+                               window.VSSCanvas?.drawingElements || [];
+                
+                // Get canvas dimensions
+                const canvas = document.getElementById('drawing-canvas');
+                const canvasWidth = canvas ? canvas.width : 800;
+                const canvasHeight = canvas ? canvas.height : 600;
+                
+                // Generate code with error handling
+                const result = await generateCodeWithErrorHandling(language, elements, canvasWidth, canvasHeight);
+                
+                if (result.success) {
+                    codeOutput.value = result.result;
+                    
+                    // Show success message if recovered or using fallback
+                    if (result.recovered || result.fallback) {
+                        showCodeGenerationMessage(result.userMessage || 'Code generated with recovery', 'warning');
+                    }
+                } else {
+                    codeOutput.value = `// Code generation failed: ${result.error.userMessage || result.error.message}`;
+                    showCodeGenerationMessage(result.userMessage || 'Code generation failed', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Code generation error:', error);
+                codeOutput.value = `// Error: ${error.message}`;
+                showCodeGenerationMessage('Code generation failed. Please try again.', 'error');
+            }
+        }
+        
+        // Generate code with comprehensive error handling
+        async function generateCodeWithErrorHandling(outputType, elements, canvasWidth, canvasHeight) {
+            // Use error handler if available
+            if (window.codeErrorHandler) {
+                const options = {
+                    outputType: outputType,
+                    canvasWidth: canvasWidth,
+                    canvasHeight: canvasHeight,
+                    timeout: 30000
+                };
+                
+                let generatorFunction;
+                switch (outputType) {
+                    case 'html':
+                        generatorFunction = (els, w, h) => new window.SafeCodeGenerator().generateHTML(els, w, h);
+                        break;
+                    case 'svg':
+                        generatorFunction = (els, w, h) => new window.SafeCodeGenerator().generateSVG(els, w, h);
+                        break;
+                    case 'css':
+                        generatorFunction = (els, w, h) => new window.SafeCodeGenerator().generateCSS(els);
+                        break;
+                    case 'javascript':
+                        generatorFunction = (els, w, h) => new window.SafeCodeGenerator().generateJavaScript(els);
+                        break;
+                    default:
+                        throw new Error(`Unknown output type: ${outputType}`);
+                }
+                
+                return await window.codeErrorHandler.executeWithErrorHandling(generatorFunction, elements, options);
+            }
             
-            return `<svg width="${canvas.width}" height="${canvas.height}" xmlns="http://www.w3.org/2000/svg">
-${svgElements}</svg>`;
+            // Fallback to direct generation
+            const generator = new window.SafeCodeGenerator();
+            let result;
+            
+            switch (outputType) {
+                case 'html':
+                    result = generator.generateHTML(elements, canvasWidth, canvasHeight);
+                    break;
+                case 'svg':
+                    result = generator.generateSVG(elements, canvasWidth, canvasHeight);
+                    break;
+                case 'css':
+                    result = generator.generateCSS(elements);
+                    break;
+                case 'javascript':
+                    result = generator.generateJavaScript(elements);
+                    break;
+                default:
+                    throw new Error(`Unknown output type: ${outputType}`);
+            }
+            
+            return { success: true, result: result };
         }
         
-        function generateCSSCode() {
-            return `/* CSS for canvas styling */
-.drawing-canvas {
-    width: ${window.VSSCanvas.canvas.width}px;
-    height: ${window.VSSCanvas.canvas.height}px;
-    border: 1px solid #ccc;
-    background: white;
-    cursor: crosshair;
-}
-
-.drawing-tools {
-    margin: 10px 0;
-}
-
-.tool-button {
-    background: #3c3c3c;
-    color: white;
-    border: none;
-    padding: 8px 12px;
-    margin: 2px;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.tool-button:hover {
-    background: #4c4c4c;
-}
-
-.tool-button.active {
-    background: #007acc;
-}`;
-        }
-        
-        function generateJavaScriptCode() {
-            return `// Generated JavaScript drawing code
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-
-// Drawing settings
-ctx.lineCap = 'round';
-ctx.lineJoin = 'round';
-
-// Generated drawing commands
-${generateCanvasCommands()}
-
-// Drawing functions
-function drawRectangle(x, y, width, height, color, lineWidth) {
-    ctx.strokeStyle = color;
-    ctx.lineWidth = lineWidth;
-    ctx.strokeRect(x, y, width, height);
-}
-
-function drawCircle(x, y, radius, color, lineWidth) {
-    ctx.strokeStyle = color;
-    ctx.lineWidth = lineWidth;
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, 2 * Math.PI);
-    ctx.stroke();
-}
-
-function drawLine(startX, startY, endX, endY, color, lineWidth) {
-    ctx.strokeStyle = color;
-    ctx.lineWidth = lineWidth;
-    ctx.beginPath();
-    ctx.moveTo(startX, startY);
-    ctx.lineTo(endX, endY);
-    ctx.stroke();
-}`;
+        // Show code generation messages to user
+        function showCodeGenerationMessage(message, type = 'info') {
+            // Create or update message element
+            let messageEl = document.getElementById('code-generation-message');
+            if (!messageEl) {
+                messageEl = document.createElement('div');
+                messageEl.id = 'code-generation-message';
+                messageEl.style.cssText = `
+                    position: absolute;
+                    top: 10px;
+                    right: 10px;
+                    padding: 8px 12px;
+                    border-radius: 4px;
+                    font-size: 12px;
+                    z-index: 1000;
+                    max-width: 300px;
+                    word-wrap: break-word;
+                `;
+                
+                const codePanel = document.getElementById('code-panel');
+                if (codePanel) {
+                    codePanel.appendChild(messageEl);
+                }
+            }
+            
+            // Set message and style based on type
+            messageEl.textContent = message;
+            switch (type) {
+                case 'error':
+                    messageEl.style.backgroundColor = '#d32f2f';
+                    messageEl.style.color = 'white';
+                    break;
+                case 'warning':
+                    messageEl.style.backgroundColor = '#f57c00';
+                    messageEl.style.color = 'white';
+                    break;
+                case 'success':
+                    messageEl.style.backgroundColor = '#388e3c';
+                    messageEl.style.color = 'white';
+                    break;
+                default:
+                    messageEl.style.backgroundColor = '#1976d2';
+                    messageEl.style.color = 'white';
+            }
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                if (messageEl && messageEl.parentNode) {
+                    messageEl.parentNode.removeChild(messageEl);
+                }
+            }, 5000);
         }
         
         function generateCanvasCommands() {
-            let commands = '';
-            
-            window.VSSCanvas.drawingElements.forEach(element => {
-                switch (element.type) {
-                    case 'rectangle':
-                        commands += `drawRectangle(${element.x}, ${element.y}, ${element.width}, ${element.height}, '${element.color}', ${element.lineWidth});\n        `;
-                        break;
-                    case 'circle':
-                        commands += `drawCircle(${element.x}, ${element.y}, ${element.radius}, '${element.color}', ${element.lineWidth});\n        `;
-                        break;
-                    case 'line':
-                        commands += `drawLine(${element.startX}, ${element.startY}, ${element.endX}, ${element.endY}, '${element.color}', ${element.lineWidth});\n        `;
-                        break;
-                    case 'freehand':
-                        commands += `// Freehand drawing with ${element.tool} (${element.color}, width: ${element.width})\n        `;
-                        break;
-                }
-            });
-            
-            return commands.trim();
+            return '// Canvas commands generation temporarily disabled';
         }
         
         // Function to redraw all elements
@@ -1561,13 +1744,13 @@ function drawLine(startX, startY, endX, endY, color, lineWidth) {
                 });
             }
             
-            // Brush size control
-            const brushSizeSlider = document.getElementById('brush-size');
-            const brushSizeValue = document.getElementById('brush-size-value');
-            if (brushSizeSlider && brushSizeValue) {
-                brushSizeSlider.addEventListener('input', function() {
-                    window.VSSCanvas.settings.brushSize = parseInt(this.value);
-                    brushSizeValue.textContent = this.value;
+            // Stroke size control
+            const strokeSizeSlider = document.getElementById('stroke-size');
+            const strokeSizeValue = document.getElementById('stroke-size-value');
+            if (strokeSizeSlider && strokeSizeValue) {
+                strokeSizeSlider.addEventListener('input', function() {
+                    window.VSSCanvas.settings.strokeSize = parseInt(this.value);
+                    strokeSizeValue.textContent = this.value;
                 });
             }
             
@@ -1604,8 +1787,140 @@ function drawLine(startX, startY, endX, endY, color, lineWidth) {
             if (pressureSensitivity) {
                 pressureSensitivity.addEventListener('change', function() {
                     window.VSSCanvas.settings.pressureSensitivity = this.checked;
+                    
+                    // Update pressure sensitivity manager
+                    if (window.pressureSensitivityManager) {
+                        window.pressureSensitivityManager.setEnabled(this.checked);
+                    }
+                    
+                    // Show/hide pressure range controls
+                    const pressureRangeControls = document.getElementById('pressure-range-controls');
+                    if (pressureRangeControls) {
+                        pressureRangeControls.style.display = this.checked ? 'block' : 'none';
+                    }
                 });
             }
+            
+            // Min pressure control
+            const minPressureSlider = document.getElementById('min-pressure');
+            const minPressureValue = document.getElementById('min-pressure-value');
+            if (minPressureSlider && minPressureValue) {
+                minPressureSlider.addEventListener('input', function() {
+                    const minValue = parseInt(this.value);
+                    window.VSSCanvas.settings.minPressure = minValue / 100;
+                    minPressureValue.textContent = minValue;
+                    
+                    // Update pressure sensitivity manager
+                    if (window.pressureSensitivityManager) {
+                        window.pressureSensitivityManager.setPressureRange(
+                            window.VSSCanvas.settings.minPressure,
+                            window.VSSCanvas.settings.maxPressure
+                        );
+                    }
+                    
+                    // Ensure min doesn't exceed max
+                    const maxPressureSlider = document.getElementById('max-pressure');
+                    if (maxPressureSlider && minValue >= parseInt(maxPressureSlider.value)) {
+                        maxPressureSlider.value = minValue + 10;
+                        const maxPressureValue = document.getElementById('max-pressure-value');
+                        if (maxPressureValue) {
+                            maxPressureValue.textContent = maxPressureSlider.value;
+                            window.VSSCanvas.settings.maxPressure = parseInt(maxPressureSlider.value) / 100;
+                        }
+                    }
+                });
+            }
+            
+            // Max pressure control
+            const maxPressureSlider = document.getElementById('max-pressure');
+            const maxPressureValue = document.getElementById('max-pressure-value');
+            if (maxPressureSlider && maxPressureValue) {
+                maxPressureSlider.addEventListener('input', function() {
+                    const maxValue = parseInt(this.value);
+                    window.VSSCanvas.settings.maxPressure = maxValue / 100;
+                    maxPressureValue.textContent = maxValue;
+                    
+                    // Update pressure sensitivity manager
+                    if (window.pressureSensitivityManager) {
+                        window.pressureSensitivityManager.setPressureRange(
+                            window.VSSCanvas.settings.minPressure,
+                            window.VSSCanvas.settings.maxPressure
+                        );
+                    }
+                    
+                    // Ensure max doesn't go below min
+                    const minPressureSlider = document.getElementById('min-pressure');
+                    if (minPressureSlider && maxValue <= parseInt(minPressureSlider.value)) {
+                        minPressureSlider.value = maxValue - 10;
+                        const minPressureValue = document.getElementById('min-pressure-value');
+                        if (minPressureValue) {
+                            minPressureValue.textContent = minPressureSlider.value;
+                            window.VSSCanvas.settings.minPressure = parseInt(minPressureSlider.value) / 100;
+                        }
+                    }
+                });
+            }
+            
+            // Mouse speed pressure toggle
+            const mouseSpeedPressure = document.getElementById('mouse-speed-pressure');
+            if (mouseSpeedPressure) {
+                mouseSpeedPressure.addEventListener('change', function() {
+                    window.VSSCanvas.settings.mouseSpeedPressure = this.checked;
+                    
+                    // Update pressure sensitivity manager
+                    if (window.pressureSensitivityManager) {
+                        window.pressureSensitivityManager.setMouseSpeedPressure(this.checked);
+                    }
+                });
+            }
+            
+            // Pressure feedback toggle
+            const pressureFeedback = document.getElementById('pressure-feedback');
+            if (pressureFeedback) {
+                pressureFeedback.addEventListener('change', function() {
+                    window.VSSCanvas.settings.pressureFeedback = this.checked;
+                    
+                    // Update pressure sensitivity manager
+                    if (window.pressureSensitivityManager) {
+                        window.pressureSensitivityManager.setFeedbackEnabled(this.checked);
+                    }
+                });
+            }
+            
+            // Initialize pressure controls visibility and values
+            function initializePressureControls() {
+                // Set initial visibility of pressure range controls
+                const pressureRangeControls = document.getElementById('pressure-range-controls');
+                const pressureSensitivityCheckbox = document.getElementById('pressure-sensitivity');
+                
+                if (pressureRangeControls && pressureSensitivityCheckbox) {
+                    pressureRangeControls.style.display = pressureSensitivityCheckbox.checked ? 'block' : 'none';
+                }
+                
+                // Set initial values from settings
+                if (minPressureSlider && minPressureValue) {
+                    minPressureSlider.value = window.VSSCanvas.settings.minPressure * 100;
+                    minPressureValue.textContent = Math.round(window.VSSCanvas.settings.minPressure * 100);
+                }
+                
+                if (maxPressureSlider && maxPressureValue) {
+                    maxPressureSlider.value = window.VSSCanvas.settings.maxPressure * 100;
+                    maxPressureValue.textContent = Math.round(window.VSSCanvas.settings.maxPressure * 100);
+                }
+                
+                if (mouseSpeedPressure) {
+                    mouseSpeedPressure.checked = window.VSSCanvas.settings.mouseSpeedPressure;
+                }
+                
+                if (pressureFeedback) {
+                    pressureFeedback.checked = window.VSSCanvas.settings.pressureFeedback;
+                }
+                
+                console.log('Pressure controls initialized');
+            }
+            
+            // Call initialization
+            initializePressureControls();
             
             // Smoothing control
             const smoothingSlider = document.getElementById('smoothing');
@@ -1614,6 +1929,96 @@ function drawLine(startX, startY, endX, endY, color, lineWidth) {
                 smoothingSlider.addEventListener('input', function() {
                     window.VSSCanvas.settings.smoothing = parseInt(this.value);
                     smoothingValue.textContent = this.value;
+                });
+            }
+            
+            // Fill mode buttons
+            const fillModeButtons = document.querySelectorAll('.fill-mode-btn');
+            fillModeButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Update active state
+                    fillModeButtons.forEach(btn => {
+                        btn.classList.remove('active');
+                        btn.style.background = '#3c3c3c';
+                        btn.style.color = '#cccccc';
+                    });
+                    this.classList.add('active');
+                    this.style.background = '#007acc';
+                    this.style.color = 'white';
+                    
+                    // Update setting
+                    window.VSSCanvas.settings.fillMode = this.dataset.mode;
+                    
+                    // Show/hide fill color section
+                    const fillColorSection = document.getElementById('fill-color-section');
+                    if (fillColorSection) {
+                        fillColorSection.style.display = 
+                            (this.dataset.mode === 'outline') ? 'none' : 'block';
+                    }
+                });
+            });
+            
+            // Fill color picker
+            const fillColorPicker = document.getElementById('fill-color-picker');
+            if (fillColorPicker) {
+                fillColorPicker.addEventListener('change', function() {
+                    window.VSSCanvas.settings.fillColor = this.value;
+                });
+            }
+            
+            // Fill color presets
+            const fillColorPresets = document.querySelectorAll('.fill-color-preset');
+            fillColorPresets.forEach(preset => {
+                preset.addEventListener('click', function() {
+                    const color = this.dataset.color;
+                    window.VSSCanvas.settings.fillColor = color;
+                    if (fillColorPicker) fillColorPicker.value = color;
+                });
+            });
+            
+            // Corner radius control
+            const cornerRadiusSlider = document.getElementById('corner-radius');
+            const cornerRadiusValue = document.getElementById('corner-radius-value');
+            if (cornerRadiusSlider && cornerRadiusValue) {
+                cornerRadiusSlider.addEventListener('input', function() {
+                    window.VSSCanvas.settings.cornerRadius = parseInt(this.value);
+                    cornerRadiusValue.textContent = this.value;
+                });
+            }
+            
+            // Ellipse mode buttons
+            const ellipseModeButtons = document.querySelectorAll('.ellipse-mode-btn');
+            ellipseModeButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Update active state
+                    ellipseModeButtons.forEach(btn => {
+                        btn.classList.remove('active');
+                        btn.style.background = '#3c3c3c';
+                        btn.style.color = '#cccccc';
+                    });
+                    this.classList.add('active');
+                    this.style.background = '#007acc';
+                    this.style.color = 'white';
+                    
+                    // Update setting
+                    window.VSSCanvas.settings.ellipseMode = this.dataset.mode;
+                    
+                    // Show/hide aspect ratio controls
+                    const aspectRatioControls = document.getElementById('aspect-ratio-controls');
+                    if (aspectRatioControls) {
+                        aspectRatioControls.style.display = 
+                            (this.dataset.mode === 'free') ? 'block' : 'none';
+                    }
+                });
+            });
+            
+            // Aspect ratio control
+            const aspectRatioSlider = document.getElementById('aspect-ratio');
+            const aspectRatioValue = document.getElementById('aspect-ratio-value');
+            if (aspectRatioSlider && aspectRatioValue) {
+                aspectRatioSlider.addEventListener('input', function() {
+                    window.VSSCanvas.settings.aspectRatio = parseFloat(this.value);
+                    aspectRatioValue.textContent = parseFloat(this.value).toFixed(1);
                 });
             }
             
@@ -1738,6 +2143,9 @@ function drawLine(startX, startY, endX, endY, color, lineWidth) {
             // Update cursor
             window.VSSCanvas.canvas.style.cursor = tool === 'eraser' ? 'grab' : 'crosshair';
             
+            // Show/hide shape-specific settings
+            updateShapeSettings(tool);
+            
             updateStatus(`Selected tool: ${tool}`);
             
             // Notify extension of tool change
@@ -1745,6 +2153,39 @@ function drawLine(startX, startY, endX, endY, color, lineWidth) {
                 command: 'toolChanged',
                 data: { tool: tool }
             });
+        }
+        
+        function updateShapeSettings(tool) {
+            const shapeFillMode = document.getElementById('shape-fill-mode');
+            const fillColorSection = document.getElementById('fill-color-section');
+            const cornerRadiusSection = document.getElementById('corner-radius-section');
+            const ellipseAspectSection = document.getElementById('ellipse-aspect-section');
+            
+            // Hide all shape settings by default
+            if (shapeFillMode) shapeFillMode.style.display = 'none';
+            if (fillColorSection) fillColorSection.style.display = 'none';
+            if (cornerRadiusSection) cornerRadiusSection.style.display = 'none';
+            if (ellipseAspectSection) ellipseAspectSection.style.display = 'none';
+            
+            // Show relevant settings for shape tools
+            if (tool === 'rectangle' || tool === 'circle' || tool === 'line') {
+                if (shapeFillMode) shapeFillMode.style.display = 'block';
+                
+                // Show fill color if not in outline mode
+                if (window.VSSCanvas.settings.fillMode !== 'outline' && fillColorSection) {
+                    fillColorSection.style.display = 'block';
+                }
+                
+                // Show corner radius only for rectangles
+                if (tool === 'rectangle' && cornerRadiusSection) {
+                    cornerRadiusSection.style.display = 'block';
+                }
+                
+                // Show ellipse aspect controls only for circles
+                if (tool === 'circle' && ellipseAspectSection) {
+                    ellipseAspectSection.style.display = 'block';
+                }
+            }
         }
         
         function startDrawing(e) {
@@ -1788,10 +2229,10 @@ function drawLine(startX, startY, endX, endY, color, lineWidth) {
                 if (window.VSSCanvas.currentTool === 'pen') {
                     window.VSSCanvas.ctx.globalCompositeOperation = 'source-over';
                     window.VSSCanvas.ctx.strokeStyle = window.VSSCanvas.settings.color;
-                    window.VSSCanvas.ctx.lineWidth = window.VSSCanvas.settings.brushSize;
+                    window.VSSCanvas.ctx.lineWidth = window.VSSCanvas.settings.strokeSize;
                 } else if (window.VSSCanvas.currentTool === 'eraser') {
                     window.VSSCanvas.ctx.globalCompositeOperation = 'destination-out';
-                    window.VSSCanvas.ctx.lineWidth = window.VSSCanvas.settings.brushSize * 2;
+                    window.VSSCanvas.ctx.lineWidth = window.VSSCanvas.settings.strokeSize * 2;
                 }
                 
                 window.VSSCanvas.ctx.lineTo(currentX, currentY);

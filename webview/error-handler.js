@@ -265,9 +265,9 @@ class CanvasErrorHandler {
       const toolButtons = document.querySelectorAll('.tool-button');
       toolButtons.forEach(btn => btn.classList.remove('active'));
       
-      const brushBtn = document.querySelector('[data-tool="brush"]');
-      if (brushBtn) {
-        brushBtn.classList.add('active');
+      const penBtn = document.querySelector('[data-tool="pen"]');
+      if (penBtn) {
+        penBtn.classList.add('active');
       }
       
       this.showUserNotification({

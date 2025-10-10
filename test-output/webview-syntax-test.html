@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webview Syntax Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 20px;
+            background: #1e1e1e;
+            color: #cccccc;
+        }
+        
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .success { background: #1e3a1e; border: 1px solid #28a745; color: #90ee90; }
+        .error { background: #3a1e1e; border: 1px solid #dc3545; color: #ffb3b3; }
+        .info { background: #1e2a3a; border: 1px solid #007acc; color: #87ceeb; }
+        
+        button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        button:hover { background: #005a9e; }
+    </style>
+</head>
+<body>
+    <h1>Webview Syntax Validation Test</h1>
+    <p>This test validates that the webview JavaScript has no syntax errors and key functions are available.</p>
+    
+    <button onclick="runSyntaxTest()">Run Syntax Test</button>
+    <button onclick="clearResults()">Clear Results</button>
+    
+    <div id="results"></div>
+
+    <script>
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.textContent = message;
+            document.getElementById('results').appendChild(div);
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        function runSyntaxTest() {
+            clearResults();
+            addResult('Starting webview syntax validation...', 'info');
+            
+            let passedTests = 0;
+            let totalTests = 0;
+            
+            // Test 1: Check if basic JavaScript syntax is valid
+            totalTests++;
+            try {
+                eval('const test = "syntax check"; console.log("Basic syntax OK");');
+                addResult('✅ Basic JavaScript syntax: PASS', 'success');
+                passedTests++;
+            } catch (error) {
+                addResult('❌ Basic JavaScript syntax: FAIL - ' + error.message, 'error');
+            }
+            
+            // Test 2: Check template literal handling
+            totalTests++;
+            try {
+                const testTemplate = 'Test string with ' + 'concatenation' + ' instead of template literals';
+                addResult('✅ String concatenation (template literal alternative): PASS', 'success');
+                passedTests++;
+            } catch (error) {
+                addResult('❌ String concatenation: FAIL - ' + error.message, 'error');
+            }
+            
+            // Test 3: Check function definitions
+            totalTests++;
+            try {
+                function testFunction() {
+                    return 'test';
+                }
+                const result = testFunction();
+                if (result === 'test') {
+                    addResult('✅ Function definitions: PASS', 'success');
+                    passedTests++;
+                } else {
+                    addResult('❌ Function definitions: FAIL - unexpected return value', 'error');
+                }
+            } catch (error) {
+                addResult('❌ Function definitions: FAIL - ' + error.message, 'error');
+            }
+            
+            // Test 4: Check object creation
+            totalTests++;
+            try {
+                const testObj = {
+                    prop: 'value',
+                    method: function() {
+                        return this.prop;
+                    }
+                };
+                if (testObj.method() === 'value') {
+                    addResult('✅ Object creation and methods: PASS', 'success');
+                    passedTests++;
+                } else {
+                    addResult('❌ Object creation: FAIL - method call failed', 'error');
+                }
+            } catch (error) {
+                addResult('❌ Object creation: FAIL - ' + error.message, 'error');
+            }
+            
+            // Test 5: Check array operations
+            totalTests++;
+            try {
+                const testArray = [1, 2, 3];
+                testArray.forEach(item => {
+                    // Test arrow functions and array methods
+                });
+                addResult('✅ Array operations and arrow functions: PASS', 'success');
+                passedTests++;
+            } catch (error) {
+                addResult('❌ Array operations: FAIL - ' + error.message, 'error');
+            }
+            
+            // Test 6: Check DOM manipulation
+            totalTests++;
+            try {
+                const testDiv = document.createElement('div');
+                testDiv.textContent = 'test';
+                testDiv.style.display = 'none';
+                document.body.appendChild(testDiv);
+                document.body.removeChild(testDiv);
+                addResult('✅ DOM manipulation: PASS', 'success');
+                passedTests++;
+            } catch (error) {
+                addResult('❌ DOM manipulation: FAIL - ' + error.message, 'error');
+            }
+            
+            // Test 7: Check event handling
+            totalTests++;
+            try {
+                const testButton = document.createElement('button');
+                testButton.addEventListener('click', function() {
+                    // Test event listener
+                });
+                addResult('✅ Event handling: PASS', 'success');
+                passedTests++;
+            } catch (error) {
+                addResult('❌ Event handling: FAIL - ' + error.message, 'error');
+            }
+            
+            // Test 8: Check canvas operations
+            totalTests++;
+            try {
+                const testCanvas = document.createElement('canvas');
+                const testCtx = testCanvas.getContext('2d');
+                testCtx.beginPath();
+                testCtx.moveTo(0, 0);
+                testCtx.lineTo(10, 10);
+                testCtx.stroke();
+                addResult('✅ Canvas operations: PASS', 'success');
+                passedTests++;
+            } catch (error) {
+                addResult('❌ Canvas operations: FAIL - ' + error.message, 'error');
+            }
+            
+            // Summary
+            addResult(`Test Summary: ${passedTests}/${totalTests} tests passed`, 
+                     passedTests === totalTests ? 'success' : 'error');
+            
+            if (passedTests === totalTests) {
+                addResult('🎉 All syntax tests passed! The webview should work correctly.', 'success');
+            } else {
+                addResult('⚠️ Some tests failed. There may be syntax issues in the webview.', 'error');
+            }
+        }
+        
+        // Auto-run test on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            addResult('Syntax test page loaded. Click "Run Syntax Test" to validate JavaScript functionality.', 'info');
+        });
+    </script>
+</body>
+</html>

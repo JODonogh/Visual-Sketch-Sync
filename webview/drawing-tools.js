@@ -13,9 +13,8 @@ class DrawingTools {
     constructor(canvas, ctx) {
         this.canvas = canvas;
         this.ctx = ctx;
-        this.currentTool = 'brush';
+        this.currentTool = 'pen';
         this.tools = {
-            brush: new BrushTool(ctx),
             pen: new PenTool(ctx),
             rectangle: new RectangleTool(ctx),
             circle: new CircleTool(ctx),
@@ -63,47 +62,7 @@ class BaseTool {
     }
 }
 
-// Brush Tool - Pressure-sensitive with variable opacity
-class BrushTool extends BaseTool {
-    constructor(ctx) {
-        super(ctx);
-        this.pressureSensitive = true;
-        this.minSize = 1;
-        this.maxSize = 50;
-    }
-    
-    startStroke(x, y, pressure = 0.5) {
-        this.ctx.beginPath();
-        this.ctx.moveTo(x, y);
-        
-        const dynamicSize = this.applyPressure(this.size, pressure);
-        const dynamicOpacity = this.applyPressure(this.opacity, pressure);
-        
-        this.ctx.lineWidth = Math.max(this.minSize, Math.min(this.maxSize, dynamicSize));
-        this.ctx.globalAlpha = Math.max(0.1, Math.min(1.0, dynamicOpacity));
-        this.ctx.strokeStyle = this.color;
-        this.ctx.lineCap = 'round';
-        this.ctx.lineJoin = 'round';
-    }
-    
-    continueStroke(x, y, pressure = 0.5) {
-        const dynamicSize = this.applyPressure(this.size, pressure);
-        const dynamicOpacity = this.applyPressure(this.opacity, pressure);
-        
-        this.ctx.lineWidth = Math.max(this.minSize, Math.min(this.maxSize, dynamicSize));
-        this.ctx.globalAlpha = Math.max(0.1, Math.min(1.0, dynamicOpacity));
-        
-        this.ctx.lineTo(x, y);
-        this.ctx.stroke();
-        this.ctx.beginPath();
-        this.ctx.moveTo(x, y);
-    }
-    
-    endStroke() {
-        this.ctx.stroke();
-        this.ctx.globalAlpha = 1.0;
-    }
-}
+
 
 // Pen Tool - Consistent line width, pressure affects opacity only
 class PenTool extends BaseTool {
@@ -352,7 +311,6 @@ class LineTool extends BaseTool {
 // Expose classes to global scope
 window.DrawingTools = DrawingTools;
 window.BaseTool = BaseTool;
-window.BrushTool = BrushTool;
 window.PenTool = PenTool;
 window.RectangleTool = RectangleTool;
 window.CircleTool = CircleTool;

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings Controls Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1e1e1e;
+            color: #cccccc;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #555;
+            border-radius: 5px;
+            background: #2d2d2d;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 3px;
+        }
+        .success {
+            background: #1e4d1e;
+            border: 1px solid #28a745;
+        }
+        .error {
+            background: #4d1e1e;
+            border: 1px solid #dc3545;
+        }
+        .warning {
+            background: #4d4d1e;
+            border: 1px solid #ffc107;
+        }
+        button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #005a9e;
+        }
+        #settings-panel {
+            display: block !important;
+            position: relative !important;
+            width: auto !important;
+            top: auto !important;
+            left: auto !important;
+        }
+    </style>
+</head>
+<body>
+    <h1>Shape-Specific Settings Controls Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Controls</h2>
+        <button onclick="testRectangleSettings()">Test Rectangle Settings</button>
+        <button onclick="testCircleSettings()">Test Circle Settings</button>
+        <button onclick="testLineSettings()">Test Line Settings</button>
+        <button onclick="testPenSettings()">Test Pen Settings</button>
+        <button onclick="testSettingsPersistence()">Test Settings Persistence</button>
+        <button onclick="runAllTests()">Run All Tests</button>
+    </div>
+    
+    <div id="test-results"></div>
+    
+    <!-- Include the settings panel HTML structure -->
+    <div id="settings-panel" style="display: block; position: relative; width: 300px; background: rgba(30, 30, 30, 0.95); border: 1px solid #555; border-radius: 8px; padding: 15px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0; color: #cccccc; font-size: 16px;">Drawing Settings</h3>
+        </div>
+        
+        <!-- Stroke Size -->
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 5px;">Stroke Size: <span id="stroke-size-value">5</span>px</label>
+            <input type="range" id="stroke-size" min="1" max="50" value="5" style="width: 100%; background: #3c3c3c;">
+        </div>
+        
+        <!-- Opacity -->
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 5px;">Opacity: <span id="opacity-value">100</span>%</label>
+            <input type="range" id="opacity" min="10" max="100" value="100" style="width: 100%; background: #3c3c3c;">
+        </div>
+        
+        <!-- Color Picker -->
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 5px;">Color</label>
+            <input type="color" id="color-picker" value="#000000" style="width: 40px; height: 30px; border: none; border-radius: 4px; cursor: pointer;">
+        </div>
+        
+        <!-- Shape Fill Mode -->
+        <div id="shape-fill-mode" style="margin-bottom: 15px; display: none;">
+            <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 8px;">Fill Mode</label>
+            <div style="display: flex; gap: 5px;">
+                <button id="fill-outline" class="fill-mode-btn active" data-mode="outline" style="flex: 1; padding: 6px; background: #007acc; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 11px;">Outline</button>
+                <button id="fill-filled" class="fill-mode-btn" data-mode="filled" style="flex: 1; padding: 6px; background: #3c3c3c; color: #cccccc; border: none; border-radius: 3px; cursor: pointer; font-size: 11px;">Filled</button>
+                <button id="fill-both" class="fill-mode-btn" data-mode="both" style="flex: 1; padding: 6px; background: #3c3c3c; color: #cccccc; border: none; border-radius: 3px; cursor: pointer; font-size: 11px;">Both</button>
+            </div>
+        </div>
+        
+        <!-- Stroke Color -->
+        <div id="stroke-color-section" style="margin-bottom: 15px; display: none;">
+            <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 5px;">Stroke Color</label>
+            <input type="color" id="stroke-color-picker" value="#000000" style="width: 40px; height: 30px; border: none; border-radius: 4px; cursor: pointer;">
+        </div>
+        
+        <!-- Fill Color -->
+        <div id="fill-color-section" style="margin-bottom: 15px; display: none;">
+            <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 5px;">Fill Color</label>
+            <input type="color" id="fill-color-picker" value="#000000" style="width: 40px; height: 30px; border: none; border-radius: 4px; cursor: pointer;">
+        </div>
+        
+        <!-- Corner Radius -->
+        <div id="corner-radius-section" style="margin-bottom: 15px; display: none;">
+            <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 5px;">Corner Radius: <span id="corner-radius-value">0</span>px</label>
+            <input type="range" id="corner-radius" min="0" max="50" value="0" style="width: 100%; background: #3c3c3c;">
+        </div>
+        
+        <!-- Ellipse Aspect Ratio -->
+        <div id="ellipse-aspect-section" style="margin-bottom: 15px; display: none;">
+            <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 8px;">Ellipse Mode</label>
+            <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                <button id="ellipse-circle" class="ellipse-mode-btn active" data-mode="circle" style="flex: 1; padding: 6px; background: #007acc; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 11px;">Circle</button>
+                <button id="ellipse-free" class="ellipse-mode-btn" data-mode="free" style="flex: 1; padding: 6px; background: #3c3c3c; color: #cccccc; border: none; border-radius: 3px; cursor: pointer; font-size: 11px;">Free Ellipse</button>
+            </div>
+            <div id="aspect-ratio-controls" style="display: none;">
+                <label style="display: block; color: #cccccc; font-size: 12px; margin-bottom: 5px;">Aspect Ratio: <span id="aspect-ratio-value">1.0</span></label>
+                <input type="range" id="aspect-ratio" min="0.2" max="5.0" step="0.1" value="1.0" style="width: 100%; background: #3c3c3c;">
+            </div>
+        </div>
+        
+        <!-- Pressure Sensitivity -->
+        <div style="margin-bottom: 15px;">
+            <label style="display: flex; align-items: center; color: #cccccc; font-size: 12px; margin-bottom: 8px;">
+                <input type="checkbox" id="pressure-sensitivity" checked style="margin-right: 8px;">
+                Enable Pressure Sensitivity
+            </label>
+            
+            <div id="pressure-range-controls" style="margin-left: 20px;">
+                <div style="margin-bottom: 10px;">
+                    <label style="display: block; color: #cccccc; font-size: 11px; margin-bottom: 4px;">Min Pressure: <span id="min-pressure-value">10</span>%</label>
+                    <input type="range" id="min-pressure" min="1" max="50" value="10" style="width: 100%; background: #3c3c3c;">
+                </div>
+                
+                <div style="margin-bottom: 10px;">
+                    <label style="display: block; color: #cccccc; font-size: 11px; margin-bottom: 4px;">Max Pressure: <span id="max-pressure-value">100</span>%</label>
+                    <input type="range" id="max-pressure" min="50" max="100" value="100" style="width: 100%; background: #3c3c3c;">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Load the settings manager -->
+    <script src="settings-manager.js"></script>
+    
+    <script>
+        let testResults = [];
+        
+        function addTestResult(testName, success, message) {
+            const result = { testName, success, message, timestamp: new Date() };
+            testResults.push(result);
+            
+            const resultsDiv = document.getElementById('test-results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${success ? 'success' : 'error'}`;
+            resultDiv.innerHTML = `
+                <strong>${testName}</strong>: ${success ? 'PASS' : 'FAIL'}<br>
+                ${message}<br>
+                <small>${result.timestamp.toLocaleTimeString()}</small>
+            `;
+            resultsDiv.appendChild(resultDiv);
+        }
+        
+        function testRectangleSettings() {
+            try {
+                // Switch to rectangle tool
+                window.SettingsManager.switchTool('rectangle');
+                
+                // Check if rectangle-specific controls are visible
+                const shapeFillMode = document.getElementById('shape-fill-mode');
+                const strokeColorSection = document.getElementById('stroke-color-section');
+                const cornerRadiusSection = document.getElementById('corner-radius-section');
+                const fillColorSection = document.getElementById('fill-color-section');
+                
+                if (shapeFillMode.style.display === 'block' &&
+                    strokeColorSection.style.display === 'block' &&
+                    cornerRadiusSection.style.display === 'block') {
+                    
+                    // Test fill mode change
+                    const fillFilledBtn = document.getElementById('fill-filled');
+                    fillFilledBtn.click();
+                    
+                    // Check if fill color section becomes visible
+                    if (fillColorSection.style.display === 'block') {
+                        addTestResult('Rectangle Settings', true, 'All rectangle-specific controls are working correctly');
+                    } else {
+                        addTestResult('Rectangle Settings', false, 'Fill color section not shown when fill mode changed');
+                    }
+                } else {
+                    addTestResult('Rectangle Settings', false, 'Rectangle-specific controls not visible');
+                }
+            } catch (error) {
+                addTestResult('Rectangle Settings', false, `Error: ${error.message}`);
+            }
+        }
+        
+        function testCircleSettings() {
+            try {
+                // Switch to circle tool
+                window.SettingsManager.switchTool('circle');
+                
+                // Check if circle-specific controls are visible
+                const shapeFillMode = document.getElementById('shape-fill-mode');
+                const strokeColorSection = document.getElementById('stroke-color-section');
+                const ellipseAspectSection = document.getElementById('ellipse-aspect-section');
+                
+                if (shapeFillMode.style.display === 'block' &&
+                    strokeColorSection.style.display === 'block' &&
+                    ellipseAspectSection.style.display === 'block') {
+                    
+                    // Test ellipse mode change
+                    const ellipseFreeBtn = document.getElementById('ellipse-free');
+                    ellipseFreeBtn.click();
+                    
+                    // Check if aspect ratio controls become visible
+                    const aspectRatioControls = document.getElementById('aspect-ratio-controls');
+                    if (aspectRatioControls.style.display === 'block') {
+                        addTestResult('Circle Settings', true, 'All circle-specific controls are working correctly');
+                    } else {
+                        addTestResult('Circle Settings', false, 'Aspect ratio controls not shown when ellipse mode changed');
+                    }
+                } else {
+                    addTestResult('Circle Settings', false, 'Circle-specific controls not visible');
+                }
+            } catch (error) {
+                addTestResult('Circle Settings', false, `Error: ${error.message}`);
+            }
+        }
+        
+        function testLineSettings() {
+            try {
+                // Switch to line tool
+                window.SettingsManager.switchTool('line');
+                
+                // Check that shape-specific controls are hidden for line tool
+                const shapeFillMode = document.getElementById('shape-fill-mode');
+                const cornerRadiusSection = document.getElementById('corner-radius-section');
+                const ellipseAspectSection = document.getElementById('ellipse-aspect-section');
+                
+                if (shapeFillMode.style.display === 'none' &&
+                    cornerRadiusSection.style.display === 'none' &&
+                    ellipseAspectSection.style.display === 'none') {
+                    addTestResult('Line Settings', true, 'Line tool correctly hides shape-specific controls');
+                } else {
+                    addTestResult('Line Settings', false, 'Line tool shows inappropriate controls');
+                }
+            } catch (error) {
+                addTestResult('Line Settings', false, `Error: ${error.message}`);
+            }
+        }
+        
+        function testPenSettings() {
+            try {
+                // Switch to pen tool
+                window.SettingsManager.switchTool('pen');
+                
+                // Check that shape-specific controls are hidden for pen tool
+                const shapeFillMode = document.getElementById('shape-fill-mode');
+                const cornerRadiusSection = document.getElementById('corner-radius-section');
+                const ellipseAspectSection = document.getElementById('ellipse-aspect-section');
+                
+                if (shapeFillMode.style.display === 'none' &&
+                    cornerRadiusSection.style.display === 'none' &&
+                    ellipseAspectSection.style.display === 'none') {
+                    addTestResult('Pen Settings', true, 'Pen tool correctly hides shape-specific controls');
+                } else {
+                    addTestResult('Pen Settings', false, 'Pen tool shows inappropriate controls');
+                }
+            } catch (error) {
+                addTestResult('Pen Settings', false, `Error: ${error.message}`);
+            }
+        }
+        
+        function testSettingsPersistence() {
+            try {
+                // Test settings persistence across tool switches
+                window.SettingsManager.switchTool('rectangle');
+                
+                // Change some settings
+                const cornerRadius = document.getElementById('corner-radius');
+                cornerRadius.value = 25;
+                cornerRadius.dispatchEvent(new Event('input'));
+                
+                const fillFilledBtn = document.getElementById('fill-filled');
+                fillFilledBtn.click();
+                
+                // Switch to another tool and back
+                window.SettingsManager.switchTool('pen');
+                window.SettingsManager.switchTool('rectangle');
+                
+                // Check if settings persisted
+                const cornerRadiusValue = document.getElementById('corner-radius-value');
+                const fillFilledActive = fillFilledBtn.classList.contains('active');
+                
+                if (cornerRadiusValue.textContent === '25' && fillFilledActive) {
+                    addTestResult('Settings Persistence', true, 'Settings correctly persist across tool switches');
+                } else {
+                    addTestResult('Settings Persistence', false, 'Settings not persisted correctly');
+                }
+            } catch (error) {
+                addTestResult('Settings Persistence', false, `Error: ${error.message}`);
+            }
+        }
+        
+        function runAllTests() {
+            // Clear previous results
+            document.getElementById('test-results').innerHTML = '';
+            testResults = [];
+            
+            // Run all tests with delays to see the UI changes
+            setTimeout(() => testRectangleSettings(), 100);
+            setTimeout(() => testCircleSettings(), 500);
+            setTimeout(() => testLineSettings(), 900);
+            setTimeout(() => testPenSettings(), 1300);
+            setTimeout(() => testSettingsPersistence(), 1700);
+            
+            setTimeout(() => {
+                const passCount = testResults.filter(r => r.success).length;
+                const totalCount = testResults.length;
+                
+                const summaryDiv = document.createElement('div');
+                summaryDiv.className = `test-result ${passCount === totalCount ? 'success' : 'warning'}`;
+                summaryDiv.innerHTML = `
+                    <strong>Test Summary</strong>: ${passCount}/${totalCount} tests passed<br>
+                    ${passCount === totalCount ? 'All tests passed!' : 'Some tests failed - check results above'}
+                `;
+                document.getElementById('test-results').appendChild(summaryDiv);
+            }, 2100);
+        }
+        
+        // Initialize when page loads
+        window.addEventListener('load', () => {
+            if (window.SettingsManager) {
+                addTestResult('Initialization', true, 'SettingsManager loaded successfully');
+            } else {
+                addTestResult('Initialization', false, 'SettingsManager not found');
+            }
+        });
+    </script>
+</body>
+</html>
