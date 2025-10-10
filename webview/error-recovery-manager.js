@@ -1,701 +1,572 @@
 /**
- * Error Recovery Manager for VSS Canvas Initialization
- * 
- * Handles initialization failures with specific recovery strategies,
- * automatic retry mechanisms, and user-initiated recovery options.
+ * InitializationRecovery System
+ * Handles webview startup failures and provides fallback initialization strategies
  */
 
 (function() {
     'use strict';
-    
-    // Check if ErrorRecoveryManager already exists
-    if (window.ErrorRecoveryManager) {
-        console.log('ErrorRecoveryManager already exists, skipping redefinition');
-        return;
-    }
 
-    class ErrorRecoveryManager {
-        constructor(canvasManager) {
-            this.canvasManager = canvasManager;
-            this.recoveryStrategies = new Map();
-            this.retryAttempts = new Map();
-            this.maxRetries = 3;
-            this.retryDelay = 1000; // Base delay in milliseconds
-            this.isRecovering = false;
+    class InitializationRecovery {
+        constructor() {
+            this.recoveryAttempts = 0;
+            this.maxRecoveryAttempts = 3;
+            this.lastError = null;
+            this.recoveryStrategies = [
+                { name: 'api-retry', attempted: false, success: false },
+                { name: 'fallback-mode', attempted: false, success: false },
+                { name: 'minimal-init', attempted: false, success: false }
+            ];
+            this.fallbackMode = false;
+            this.initializationState = 'pending';
+            this.errorCallbacks = [];
+            this.recoveryCallbacks = [];
             
-            this.setupRecoveryStrategies();
-            console.log('ErrorRecoveryManager: Initialized with recovery strategies');
+            // Bind methods to preserve context
+            this.handleInitializationError = this.handleInitializationError.bind(this);
+            this.attemptRecovery = this.attemptRecovery.bind(this);
+            this.reportRecoveryStatus = this.reportRecoveryStatus.bind(this);
         }
-        
+
         /**
-         * Setup recovery strategies for different error types
+         * Register error callback for initialization failures
          */
-        setupRecoveryStrategies() {
-            // Duplicate declaration error - most common initialization error
-            this.recoveryStrategies.set('DUPLICATE_DECLARATION', {
-                strategy: 'cleanup_and_reinit',
-                message: 'Variable conflict detected. Cleaning up and reinitializing...',
-                autoRecover: true,
-                maxRetries: 2,
-                action: async () => {
-                    console.log('ErrorRecoveryManager: Executing cleanup and reinit strategy');
-                    if (this.canvasManager) {
-                        await this.canvasManager.cleanup();
-                        return await this.canvasManager.init();
-                    }
-                    return false;
-                }
-            });
-            
-            // Canvas element not found
-            this.recoveryStrategies.set('CANVAS_NOT_FOUND', {
-                strategy: 'wait_and_retry',
-                message: 'Canvas element missing. Waiting for DOM to load...',
-                autoRecover: true,
-                maxRetries: 3,
-                retryDelay: 2000,
-                action: async () => {
-                    console.log('ErrorRecoveryManager: Waiting for DOM and retrying canvas initialization');
-                    // Wait for DOM to be fully loaded
-                    await this.waitForDOM();
-                    // Check if canvas element exists now
-                    const canvas = document.getElementById('drawing-canvas');
-                    if (canvas) {
-                        return await this.canvasManager.init();
-                    }
-                    return false;
-                }
-            });
-            
-            // Canvas context error
-            this.recoveryStrategies.set('CONTEXT_ERROR', {
-                strategy: 'recreate_canvas',
-                message: 'Canvas context error. Recreating canvas element...',
-                autoRecover: true,
-                maxRetries: 2,
-                action: async () => {
-                    console.log('ErrorRecoveryManager: Recreating canvas element');
-                    return await this.recreateCanvasElement();
-                }
-            });
-            
-            // DOM elements missing
-            this.recoveryStrategies.set('DOM_ERROR', {
-                strategy: 'reload_page',
-                message: 'Critical DOM elements missing. Page reload required.',
-                autoRecover: false,
-                showReloadButton: true,
-                action: async () => {
-                    console.log('ErrorRecoveryManager: DOM error requires page reload');
-                    return false; // Cannot auto-recover, requires user action
-                }
-            });
-            
-            // Initialization timeout
-            this.recoveryStrategies.set('TIMEOUT', {
-                strategy: 'extended_timeout_retry',
-                message: 'Initialization timeout. Retrying with extended timeout...',
-                autoRecover: true,
-                maxRetries: 2,
-                extendedTimeout: 20000, // 20 seconds
-                action: async () => {
-                    console.log('ErrorRecoveryManager: Retrying with extended timeout');
-                    if (this.canvasManager) {
-                        await this.canvasManager.cleanup();
-                        return await this.canvasManager.init(this.recoveryStrategies.get('TIMEOUT').extendedTimeout);
-                    }
-                    return false;
-                }
-            });
-            
-            // VS Code API not available or already acquired
-            this.recoveryStrategies.set('VSCODE_API_ERROR', {
-                strategy: 'use_existing_api',
-                message: 'VS Code API issue detected. Using existing API instance...',
-                autoRecover: true,
-                maxRetries: 1,
-                action: async () => {
-                    console.log('ErrorRecoveryManager: Handling VS Code API error');
-                    
-                    // If API was already acquired, use the existing instance
-                    if (window.vscodeApi) {
-                        console.log('ErrorRecoveryManager: Using existing VS Code API instance');
-                        if (this.canvasManager) {
-                            this.canvasManager.vscode = window.vscodeApi;
-                            return await this.canvasManager.init();
-                        }
-                        return true;
-                    }
-                    
-                    // Otherwise fall back to standalone mode
-                    console.log('ErrorRecoveryManager: Falling back to standalone mode');
-                    return await this.initializeStandaloneMode();
-                }
-            });
-            
-            // Memory/resource error
-            this.recoveryStrategies.set('MEMORY_ERROR', {
-                strategy: 'cleanup_and_retry',
-                message: 'Memory error detected. Cleaning up resources and retrying...',
-                autoRecover: true,
-                maxRetries: 1,
-                action: async () => {
-                    console.log('ErrorRecoveryManager: Cleaning up memory and retrying');
-                    await this.performMemoryCleanup();
-                    if (this.canvasManager) {
-                        return await this.canvasManager.init();
-                    }
-                    return false;
-                }
-            });
-            
-            // Generic unknown error
-            this.recoveryStrategies.set('UNKNOWN', {
-                strategy: 'generic_retry',
-                message: 'Unknown error occurred. Attempting generic recovery...',
-                autoRecover: true,
-                maxRetries: 1,
-                action: async () => {
-                    console.log('ErrorRecoveryManager: Attempting generic recovery');
-                    if (this.canvasManager) {
-                        await this.canvasManager.cleanup();
-                        // Wait a bit before retrying
-                        await new Promise(resolve => setTimeout(resolve, 2000));
-                        return await this.canvasManager.init();
-                    }
-                    return false;
-                }
-            });
-        }
-        
-        /**
-         * Handle initialization error with appropriate recovery strategy
-         * @param {Error} error - The error that occurred
-         * @param {number} retryCount - Current retry attempt (default: 0)
-         * @returns {Promise<boolean>} - Whether recovery was successful
-         */
-        async handleError(error, retryCount = 0) {
-            if (this.isRecovering) {
-                console.log('ErrorRecoveryManager: Recovery already in progress, skipping');
-                return false;
-            }
-            
-            this.isRecovering = true;
-            
-            try {
-                console.log(`ErrorRecoveryManager: Handling error (attempt ${retryCount + 1}):`, error.message);
-                
-                // Determine error type
-                const errorType = this.classifyError(error);
-                console.log(`ErrorRecoveryManager: Classified error as: ${errorType}`);
-                
-                // Get recovery strategy
-                const strategy = this.recoveryStrategies.get(errorType);
-                if (!strategy) {
-                    console.warn(`ErrorRecoveryManager: No recovery strategy found for error type: ${errorType}`);
-                    return false;
-                }
-                
-                // Check if we've exceeded max retries for this error type
-                const currentRetries = this.retryAttempts.get(errorType) || 0;
-                const maxRetries = strategy.maxRetries || this.maxRetries;
-                
-                if (currentRetries >= maxRetries) {
-                    console.log(`ErrorRecoveryManager: Max retries (${maxRetries}) exceeded for ${errorType}`);
-                    this.showFinalErrorMessage(error, strategy);
-                    return false;
-                }
-                
-                // Increment retry count
-                this.retryAttempts.set(errorType, currentRetries + 1);
-                
-                // Show recovery message to user
-                this.showRecoveryMessage(strategy.message);
-                
-                // Attempt automatic recovery if enabled
-                if (strategy.autoRecover) {
-                    console.log(`ErrorRecoveryManager: Attempting automatic recovery using strategy: ${strategy.strategy}`);
-                    
-                    // Calculate delay with exponential backoff
-                    const delay = this.calculateRetryDelay(currentRetries, strategy.retryDelay);
-                    if (delay > 0) {
-                        console.log(`ErrorRecoveryManager: Waiting ${delay}ms before retry...`);
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                    }
-                    
-                    // Execute recovery action
-                    const success = await strategy.action();
-                    
-                    if (success) {
-                        console.log(`ErrorRecoveryManager: Recovery successful for ${errorType}`);
-                        this.retryAttempts.delete(errorType); // Reset retry count on success
-                        this.hideRecoveryMessage();
-                        return true;
-                    } else {
-                        console.log(`ErrorRecoveryManager: Recovery failed for ${errorType}, will retry if attempts remain`);
-                        
-                        // If we still have retries left, try again
-                        if (currentRetries + 1 < maxRetries) {
-                            return await this.handleError(error, retryCount + 1);
-                        }
-                    }
-                }
-                
-                // If auto-recovery failed or is disabled, show manual recovery options
-                this.showManualRecoveryOptions(error, strategy);
-                return false;
-                
-            } catch (recoveryError) {
-                console.error('ErrorRecoveryManager: Recovery process failed:', recoveryError);
-                this.showFinalErrorMessage(error, null);
-                return false;
-            } finally {
-                this.isRecovering = false;
+        onInitializationError(callback) {
+            if (typeof callback === 'function') {
+                this.errorCallbacks.push(callback);
             }
         }
-        
+
         /**
-         * Classify error based on error message and context
-         * @param {Error} error - The error to classify
-         * @returns {string} - Error type
+         * Register recovery callback for successful recovery
          */
-        classifyError(error) {
-            const message = error.message.toLowerCase();
-            
-            if (message.includes('already been declared') || message.includes('identifier') && message.includes('declared')) {
-                return 'DUPLICATE_DECLARATION';
-            }
-            
-            if (message.includes('canvas element not found') || message.includes('drawing-canvas')) {
-                return 'CANVAS_NOT_FOUND';
-            }
-            
-            if (message.includes('failed to get 2d rendering context') || message.includes('context')) {
-                return 'CONTEXT_ERROR';
-            }
-            
-            if (message.includes('required dom elements not found') || message.includes('dom')) {
-                return 'DOM_ERROR';
-            }
-            
-            if (message.includes('timeout') || message.includes('failed to load')) {
-                return 'TIMEOUT';
-            }
-            
-            if (message.includes('vscode') || message.includes('acquirevscodapi') || 
-                message.includes('instance of the vs code api has already been acquired') ||
-                message.includes('already been acquired')) {
-                return 'VSCODE_API_ERROR';
-            }
-            
-            if (message.includes('memory') || message.includes('out of memory')) {
-                return 'MEMORY_ERROR';
-            }
-            
-            return 'UNKNOWN';
-        }
-        
-        /**
-         * Calculate retry delay with exponential backoff
-         * @param {number} retryCount - Current retry attempt
-         * @param {number} baseDelay - Base delay from strategy (optional)
-         * @returns {number} - Delay in milliseconds
-         */
-        calculateRetryDelay(retryCount, baseDelay = null) {
-            const delay = baseDelay || this.retryDelay;
-            return Math.min(delay * Math.pow(2, retryCount), 10000); // Max 10 seconds
-        }
-        
-        /**
-         * Wait for DOM to be fully loaded
-         * @returns {Promise<void>}
-         */
-        waitForDOM() {
-            return new Promise((resolve) => {
-                if (document.readyState === 'complete') {
-                    resolve();
-                } else {
-                    const checkReady = () => {
-                        if (document.readyState === 'complete') {
-                            resolve();
-                        } else {
-                            setTimeout(checkReady, 100);
-                        }
-                    };
-                    checkReady();
-                }
-            });
-        }
-        
-        /**
-         * Recreate canvas element if it's corrupted
-         * @returns {Promise<boolean>}
-         */
-        async recreateCanvasElement() {
-            try {
-                const container = document.getElementById('canvas-container');
-                if (!container) {
-                    console.error('ErrorRecoveryManager: Canvas container not found');
-                    return false;
-                }
-                
-                // Remove existing canvas if it exists
-                const existingCanvas = document.getElementById('drawing-canvas');
-                if (existingCanvas) {
-                    existingCanvas.remove();
-                }
-                
-                // Create new canvas element
-                const newCanvas = document.createElement('canvas');
-                newCanvas.id = 'drawing-canvas';
-                newCanvas.style.cssText = `
-                    flex: 1;
-                    background: white;
-                    cursor: crosshair;
-                    touch-action: none;
-                    user-select: none;
-                    -webkit-user-select: none;
-                    -moz-user-select: none;
-                    -ms-user-select: none;
-                `;
-                
-                container.appendChild(newCanvas);
-                
-                console.log('ErrorRecoveryManager: Canvas element recreated');
-                
-                // Reinitialize canvas manager
-                if (this.canvasManager) {
-                    return await this.canvasManager.init();
-                }
-                
-                return true;
-            } catch (error) {
-                console.error('ErrorRecoveryManager: Failed to recreate canvas element:', error);
-                return false;
+        onRecoverySuccess(callback) {
+            if (typeof callback === 'function') {
+                this.recoveryCallbacks.push(callback);
             }
         }
-        
+
         /**
-         * Initialize standalone mode without VS Code API
-         * @returns {Promise<boolean>}
+         * Handle initialization errors with recovery mechanisms
          */
-        async initializeStandaloneMode() {
-            try {
-                console.log('ErrorRecoveryManager: Initializing standalone mode');
-                
-                // Mock VS Code API for standalone operation using singleton pattern
-                if (!window.vscodeApi) {
-                    window.vscodeApi = {
-                        postMessage: (message) => {
-                            console.log('Mock VS Code API - Message:', message);
-                        },
-                        setState: (state) => {
-                            console.log('Mock VS Code API - State set:', state);
-                        },
-                        getState: () => {
-                            return {};
-                        }
-                    };
-                    console.log('ErrorRecoveryManager: Mock VS Code API created');
-                }
-                
-                // Mock acquireVsCodeApi function to return existing instance
-                if (!window.acquireVsCodeApi) {
-                    window.acquireVsCodeApi = () => {
-                        if (window.vscodeApi) {
-                            return window.vscodeApi;
-                        }
-                        throw new Error('VS Code API not available in standalone mode');
-                    };
-                }
-                
-                // Initialize canvas manager in standalone mode
-                if (this.canvasManager) {
-                    return await this.canvasManager.init();
-                }
-                
-                return true;
-            } catch (error) {
-                console.error('ErrorRecoveryManager: Failed to initialize standalone mode:', error);
-                return false;
-            }
-        }
-        
-        /**
-         * Perform memory cleanup
-         * @returns {Promise<void>}
-         */
-        async performMemoryCleanup() {
-            try {
-                console.log('ErrorRecoveryManager: Performing memory cleanup');
-                
-                // Clear any cached data
-                if (window.canvasCache) {
-                    window.canvasCache.clear();
-                }
-                
-                // Clear undo/redo history if it exists
-                if (window.canvasHistory) {
-                    window.canvasHistory.clear();
-                }
-                
-                // Force garbage collection if available
-                if (window.gc) {
-                    window.gc();
-                }
-                
-                // Clear any large objects from memory
-                if (window.imageData) {
-                    window.imageData = null;
-                }
-                
-                console.log('ErrorRecoveryManager: Memory cleanup completed');
-            } catch (error) {
-                console.error('ErrorRecoveryManager: Memory cleanup failed:', error);
-            }
-        }
-        
-        /**
-         * Show recovery message to user
-         * @param {string} message - Recovery message
-         */
-        showRecoveryMessage(message) {
-            console.log('ErrorRecoveryManager: Showing recovery message:', message);
+        async handleInitializationError(error, context = {}) {
+            this.lastError = error;
+            this.recoveryAttempts++;
+            
+            console.error(`InitializationRecovery: Handling error (attempt ${this.recoveryAttempts}):`, error);
             
             // Update loading status if available
-            const loadingStatus = document.getElementById('loading-status');
-            if (loadingStatus) {
-                loadingStatus.textContent = message;
+            this.updateLoadingStatus(`Error occurred, attempting recovery... (${this.recoveryAttempts}/${this.maxRecoveryAttempts})`);
+            
+            // Notify error callbacks
+            this.errorCallbacks.forEach(callback => {
+                try {
+                    callback(error, context, this.recoveryAttempts);
+                } catch (callbackError) {
+                    console.error('InitializationRecovery: Error in error callback:', callbackError);
+                }
+            });
+
+            // Check if we've exceeded max attempts
+            if (this.recoveryAttempts > this.maxRecoveryAttempts) {
+                this.initializationState = 'failed';
+                this.showFinalErrorScreen(error);
+                return false;
+            }
+
+            // Attempt recovery based on error type
+            const recovered = await this.attemptRecovery(error, context);
+            
+            if (recovered) {
+                this.initializationState = 'recovered';
+                this.notifyRecoverySuccess();
+                return true;
+            }
+
+            // If recovery failed, try next strategy or show error
+            return false;
+        }
+
+        /**
+         * Attempt recovery using available strategies
+         */
+        async attemptRecovery(error, context) {
+            const errorMessage = error.message.toLowerCase();
+            
+            // Strategy 1: VS Code API retry for API conflicts
+            if (errorMessage.includes('api') || errorMessage.includes('already been acquired')) {
+                return await this.tryApiRetryStrategy(error, context);
             }
             
-            // Show loading screen if hidden
+            // Strategy 2: CSP violation recovery
+            if (errorMessage.includes('csp') || errorMessage.includes('content security policy')) {
+                return await this.tryCSPRecoveryStrategy(error, context);
+            }
+            
+            // Strategy 3: Script loading failure recovery
+            if (errorMessage.includes('script') || errorMessage.includes('load')) {
+                return await this.tryScriptLoadingRecovery(error, context);
+            }
+            
+            // Strategy 4: General fallback mode
+            return await this.tryFallbackModeStrategy(error, context);
+        }
+
+        /**
+         * Strategy 1: Retry VS Code API acquisition with centralized manager
+         */
+        async tryApiRetryStrategy(error, context) {
+            const strategy = this.recoveryStrategies.find(s => s.name === 'api-retry');
+            if (strategy.attempted) return false;
+            
+            strategy.attempted = true;
+            console.log('InitializationRecovery: Attempting API retry strategy');
+            
+            try {
+                // Wait a bit before retry
+                await this.delay(500);
+                
+                // Try to use existing VS Code API manager
+                if (window.VSCodeAPIManager) {
+                    const apiManager = window.VSCodeAPIManager.getInstance();
+                    const api = apiManager.getAPI();
+                    
+                    if (api) {
+                        console.log('InitializationRecovery: Successfully recovered using existing API');
+                        strategy.success = true;
+                        
+                        // Reinitialize with recovered API
+                        if (window.VSSCanvas && typeof window.VSSCanvas.reinitialize === 'function') {
+                            window.VSSCanvas.reinitialize(api);
+                        }
+                        
+                        return true;
+                    }
+                }
+                
+                // Try alternative API acquisition
+                if (window.acquireVsCodeApi && !window.vscode) {
+                    const api = window.acquireVsCodeApi();
+                    if (api) {
+                        window.vscode = api;
+                        strategy.success = true;
+                        return true;
+                    }
+                }
+                
+            } catch (retryError) {
+                console.error('InitializationRecovery: API retry failed:', retryError);
+            }
+            
+            return false;
+        }
+
+        /**
+         * Strategy 2: CSP violation recovery with alternative loading
+         */
+        async tryCSPRecoveryStrategy(error, context) {
+            const strategy = this.recoveryStrategies.find(s => s.name === 'csp-recovery');
+            if (!strategy) {
+                this.recoveryStrategies.push({ name: 'csp-recovery', attempted: false, success: false });
+            }
+            
+            const cspStrategy = this.recoveryStrategies.find(s => s.name === 'csp-recovery');
+            if (cspStrategy.attempted) return false;
+            
+            cspStrategy.attempted = true;
+            console.log('InitializationRecovery: Attempting CSP recovery strategy');
+            
+            try {
+                // Try to load critical CSS inline as fallback
+                if (window.StylesheetLoader) {
+                    const loader = new window.StylesheetLoader();
+                    await loader.loadCriticalStylesInline();
+                    cspStrategy.success = true;
+                    return true;
+                }
+                
+                // Fallback: inject minimal critical styles
+                this.injectMinimalStyles();
+                cspStrategy.success = true;
+                return true;
+                
+            } catch (cspError) {
+                console.error('InitializationRecovery: CSP recovery failed:', cspError);
+            }
+            
+            return false;
+        }
+
+        /**
+         * Strategy 3: Script loading recovery with minimal functionality
+         */
+        async tryScriptLoadingRecovery(error, context) {
+            const strategy = this.recoveryStrategies.find(s => s.name === 'script-recovery');
+            if (!strategy) {
+                this.recoveryStrategies.push({ name: 'script-recovery', attempted: false, success: false });
+            }
+            
+            const scriptStrategy = this.recoveryStrategies.find(s => s.name === 'script-recovery');
+            if (scriptStrategy.attempted) return false;
+            
+            scriptStrategy.attempted = true;
+            console.log('InitializationRecovery: Attempting script loading recovery');
+            
+            try {
+                // Initialize minimal canvas functionality
+                this.initializeMinimalCanvas();
+                scriptStrategy.success = true;
+                return true;
+                
+            } catch (scriptError) {
+                console.error('InitializationRecovery: Script recovery failed:', scriptError);
+            }
+            
+            return false;
+        }
+
+        /**
+         * Strategy 4: Fallback mode with basic functionality
+         */
+        async tryFallbackModeStrategy(error, context) {
+            const strategy = this.recoveryStrategies.find(s => s.name === 'fallback-mode');
+            if (strategy.attempted) return false;
+            
+            strategy.attempted = true;
+            this.fallbackMode = true;
+            console.log('InitializationRecovery: Entering fallback mode');
+            
+            try {
+                // Show fallback UI
+                this.showFallbackUI();
+                
+                // Initialize basic canvas
+                this.initializeBasicCanvas();
+                
+                strategy.success = true;
+                return true;
+                
+            } catch (fallbackError) {
+                console.error('InitializationRecovery: Fallback mode failed:', fallbackError);
+            }
+            
+            return false;
+        }
+
+        /**
+         * Initialize minimal canvas functionality
+         */
+        initializeMinimalCanvas() {
+            const canvas = document.getElementById('drawing-canvas');
+            if (!canvas) {
+                throw new Error('Canvas element not found');
+            }
+            
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                throw new Error('Canvas context not available');
+            }
+            
+            // Set canvas size
+            canvas.width = canvas.offsetWidth || 800;
+            canvas.height = canvas.offsetHeight || 600;
+            
+            // Basic drawing functionality
+            let isDrawing = false;
+            let lastX = 0;
+            let lastY = 0;
+            
+            canvas.addEventListener('mousedown', (e) => {
+                isDrawing = true;
+                [lastX, lastY] = [e.offsetX, e.offsetY];
+            });
+            
+            canvas.addEventListener('mousemove', (e) => {
+                if (!isDrawing) return;
+                
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(e.offsetX, e.offsetY);
+                ctx.stroke();
+                
+                [lastX, lastY] = [e.offsetX, e.offsetY];
+            });
+            
+            canvas.addEventListener('mouseup', () => {
+                isDrawing = false;
+            });
+            
+            console.log('InitializationRecovery: Minimal canvas initialized');
+        }
+
+        /**
+         * Initialize basic canvas with limited functionality
+         */
+        initializeBasicCanvas() {
+            this.initializeMinimalCanvas();
+            
+            // Add basic toolbar functionality
+            const clearButton = document.getElementById('clear-canvas');
+            if (clearButton) {
+                clearButton.addEventListener('click', () => {
+                    const canvas = document.getElementById('drawing-canvas');
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                });
+            }
+            
+            console.log('InitializationRecovery: Basic canvas initialized');
+        }
+
+        /**
+         * Show fallback UI with recovery options
+         */
+        showFallbackUI() {
+            // Hide loading screen
+            const loadingScreen = document.getElementById('loading-screen');
+            if (loadingScreen) {
+                loadingScreen.style.display = 'none';
+            }
+            
+            // Show canvas container
+            const canvasContainer = document.getElementById('canvas-container');
+            if (canvasContainer) {
+                canvasContainer.style.display = 'block';
+            }
+            
+            // Add fallback mode indicator
+            const status = document.getElementById('status');
+            if (status) {
+                status.innerHTML = `
+                    <span>VSS Drawing Canvas - Fallback Mode</span>
+                    <span class="connection-status disconnected">Limited Functionality</span>
+                `;
+            }
+            
+            // Show recovery options
+            this.showRecoveryOptions();
+        }
+
+        /**
+         * Show recovery options to user
+         */
+        showRecoveryOptions() {
+            const recoveryDiv = document.createElement('div');
+            recoveryDiv.id = 'recovery-options';
+            recoveryDiv.style.cssText = `
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                background: rgba(255, 193, 7, 0.9);
+                color: #000;
+                padding: 10px;
+                border-radius: 5px;
+                z-index: 1000;
+                max-width: 300px;
+                font-size: 12px;
+            `;
+            
+            recoveryDiv.innerHTML = `
+                <div style="font-weight: bold; margin-bottom: 5px;">⚠️ Recovery Mode Active</div>
+                <div style="margin-bottom: 10px;">Some features may be limited. You can:</div>
+                <button id="retry-full-init" style="margin-right: 5px; padding: 3px 8px; font-size: 11px;">Retry Full Initialization</button>
+                <button id="reload-webview" style="padding: 3px 8px; font-size: 11px;">Reload Webview</button>
+                <button id="dismiss-recovery" style="float: right; background: none; border: none; font-size: 14px; cursor: pointer;">×</button>
+            `;
+            
+            document.body.appendChild(recoveryDiv);
+            
+            // Add event listeners
+            document.getElementById('retry-full-init')?.addEventListener('click', () => {
+                this.retryFullInitialization();
+            });
+            
+            document.getElementById('reload-webview')?.addEventListener('click', () => {
+                window.location.reload();
+            });
+            
+            document.getElementById('dismiss-recovery')?.addEventListener('click', () => {
+                recoveryDiv.remove();
+            });
+        }
+
+        /**
+         * Retry full initialization
+         */
+        async retryFullInitialization() {
+            console.log('InitializationRecovery: Retrying full initialization');
+            
+            // Reset recovery state
+            this.recoveryAttempts = 0;
+            this.recoveryStrategies.forEach(strategy => {
+                strategy.attempted = false;
+                strategy.success = false;
+            });
+            this.fallbackMode = false;
+            this.initializationState = 'pending';
+            
+            // Remove recovery options
+            const recoveryOptions = document.getElementById('recovery-options');
+            if (recoveryOptions) {
+                recoveryOptions.remove();
+            }
+            
+            // Show loading screen
             const loadingScreen = document.getElementById('loading-screen');
             if (loadingScreen) {
                 loadingScreen.style.display = 'flex';
             }
             
-            // Hide error screen temporarily
-            const errorScreen = document.getElementById('error-screen');
-            if (errorScreen) {
-                errorScreen.style.display = 'none';
+            // Attempt reinitialization
+            try {
+                if (window.initializeCoordinatedLoading) {
+                    await window.initializeCoordinatedLoading();
+                } else {
+                    // Fallback initialization
+                    window.location.reload();
+                }
+            } catch (error) {
+                console.error('InitializationRecovery: Retry failed:', error);
+                this.handleInitializationError(error, { source: 'retry' });
             }
         }
-        
+
         /**
-         * Hide recovery message
+         * Inject minimal critical styles for basic functionality
          */
-        hideRecoveryMessage() {
-            const loadingScreen = document.getElementById('loading-screen');
-            if (loadingScreen) {
-                loadingScreen.style.display = 'none';
-            }
+        injectMinimalStyles() {
+            const style = document.createElement('style');
+            style.textContent = `
+                #drawing-canvas {
+                    border: 1px solid #ccc;
+                    cursor: crosshair;
+                    background: white;
+                }
+                .toolbar {
+                    padding: 10px;
+                    background: #f0f0f0;
+                    border-bottom: 1px solid #ccc;
+                }
+                .tool-button {
+                    margin-right: 5px;
+                    padding: 5px 10px;
+                    border: 1px solid #ccc;
+                    background: white;
+                    cursor: pointer;
+                }
+                .tool-button:hover {
+                    background: #e0e0e0;
+                }
+                .loading-screen {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.8);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 9999;
+                }
+            `;
+            document.head.appendChild(style);
+            console.log('InitializationRecovery: Minimal styles injected');
         }
-        
+
         /**
-         * Show manual recovery options to user
-         * @param {Error} error - The original error
-         * @param {Object} strategy - Recovery strategy
+         * Show final error screen when all recovery attempts fail
          */
-        showManualRecoveryOptions(error, strategy) {
-            console.log('ErrorRecoveryManager: Showing manual recovery options');
+        showFinalErrorScreen(error) {
+            console.error('InitializationRecovery: All recovery attempts failed');
             
             const errorScreen = document.getElementById('error-screen');
             const errorMessage = document.getElementById('error-message');
+            const errorStack = document.getElementById('error-stack');
             
             if (errorScreen && errorMessage) {
-                // Update error message with recovery information
-                const recoveryInfo = strategy ? 
-                    `\n\nRecovery attempted: ${strategy.message}\nYou can try the options below to resolve this issue.` :
-                    '\n\nAutomatic recovery failed. Please try the manual options below.';
+                errorMessage.innerHTML = `
+                    <h3>Initialization Failed</h3>
+                    <p>The webview failed to initialize after ${this.maxRecoveryAttempts} recovery attempts.</p>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    <p><strong>Recovery attempts:</strong></p>
+                    <ul>
+                        ${this.recoveryStrategies.map(strategy => 
+                            `<li>${strategy.name}: ${strategy.attempted ? (strategy.success ? '✅ Success' : '❌ Failed') : '⏸️ Not attempted'}</li>`
+                        ).join('')}
+                    </ul>
+                `;
                 
-                errorMessage.textContent = error.message + recoveryInfo;
+                if (errorStack) {
+                    errorStack.textContent = error.stack || 'No stack trace available';
+                }
                 
-                // Show error screen
                 errorScreen.style.display = 'flex';
                 
                 // Hide loading screen
-                this.hideRecoveryMessage();
-                
-                // Set up enhanced retry functionality
-                this.setupEnhancedRetryOptions(error, strategy);
-            }
-        }
-        
-        /**
-         * Show final error message when all recovery attempts fail
-         * @param {Error} error - The original error
-         * @param {Object} strategy - Recovery strategy (if any)
-         */
-        showFinalErrorMessage(error, strategy) {
-            console.log('ErrorRecoveryManager: Showing final error message');
-            
-            const errorScreen = document.getElementById('error-screen');
-            const errorMessage = document.getElementById('error-message');
-            
-            if (errorScreen && errorMessage) {
-                let finalMessage = `${error.message}\n\nAll automatic recovery attempts have failed.`;
-                
-                if (strategy && strategy.showReloadButton) {
-                    finalMessage += '\n\nThis error requires a page reload to resolve.';
-                } else {
-                    finalMessage += '\n\nPlease try reloading the page or report this issue.';
-                }
-                
-                errorMessage.textContent = finalMessage;
-                errorScreen.style.display = 'flex';
-                this.hideRecoveryMessage();
-                
-                // Set up final recovery options
-                this.setupFinalRecoveryOptions(error, strategy);
-            }
-        }
-        
-        /**
-         * Set up enhanced retry options with different strategies
-         * @param {Error} error - The original error
-         * @param {Object} strategy - Recovery strategy
-         */
-        setupEnhancedRetryOptions(error, strategy) {
-            const retryButton = document.getElementById('retry-button');
-            
-            if (retryButton) {
-                // Remove existing event listeners
-                const newRetryButton = retryButton.cloneNode(true);
-                retryButton.parentNode.replaceChild(newRetryButton, retryButton);
-                
-                // Add enhanced retry functionality
-                newRetryButton.addEventListener('click', async () => {
-                    console.log('ErrorRecoveryManager: Enhanced retry button clicked');
-                    
-                    // Show different retry options based on error type
-                    const errorType = this.classifyError(error);
-                    
-                    // Reset retry count for manual retry
-                    this.retryAttempts.delete(errorType);
-                    
-                    // Hide error screen and show loading
-                    const errorScreen = document.getElementById('error-screen');
-                    if (errorScreen) {
-                        errorScreen.style.display = 'none';
-                    }
-                    
-                    // Attempt recovery again
-                    const success = await this.handleError(error, 0);
-                    
-                    if (!success) {
-                        // If still failing, offer page reload
-                        this.showPageReloadOption(error);
-                    }
-                });
-            }
-        }
-        
-        /**
-         * Set up final recovery options when all else fails
-         * @param {Error} error - The original error
-         * @param {Object} strategy - Recovery strategy
-         */
-        setupFinalRecoveryOptions(error, strategy) {
-            const retryButton = document.getElementById('retry-button');
-            
-            if (retryButton) {
-                // Change retry button to reload button for final recovery
-                retryButton.textContent = 'Reload Page';
-                
-                // Remove existing event listeners
-                const newRetryButton = retryButton.cloneNode(true);
-                retryButton.parentNode.replaceChild(newRetryButton, retryButton);
-                
-                // Add page reload functionality
-                newRetryButton.addEventListener('click', () => {
-                    console.log('ErrorRecoveryManager: Page reload requested by user');
-                    window.location.reload();
-                });
-            }
-        }
-        
-        /**
-         * Show page reload option as last resort
-         * @param {Error} error - The original error
-         */
-        showPageReloadOption(error) {
-            const errorScreen = document.getElementById('error-screen');
-            const errorMessage = document.getElementById('error-message');
-            
-            if (errorScreen && errorMessage) {
-                errorMessage.textContent = `${error.message}\n\nAll recovery attempts have failed. A page reload is required to continue.`;
-                errorScreen.style.display = 'flex';
-                
-                // Update retry button to reload button
-                const retryButton = document.getElementById('retry-button');
-                if (retryButton) {
-                    retryButton.textContent = 'Reload Page';
-                    retryButton.onclick = () => window.location.reload();
+                const loadingScreen = document.getElementById('loading-screen');
+                if (loadingScreen) {
+                    loadingScreen.style.display = 'none';
                 }
             }
         }
-        
+
         /**
-         * Provide manual retry with specific strategy
-         * @param {string} errorType - Type of error to retry
-         * @returns {Promise<boolean>}
+         * Update loading status message
          */
-        async manualRetry(errorType) {
-            console.log(`ErrorRecoveryManager: Manual retry requested for ${errorType}`);
-            
-            const strategy = this.recoveryStrategies.get(errorType);
-            if (!strategy) {
-                console.warn(`ErrorRecoveryManager: No strategy found for manual retry of ${errorType}`);
-                return false;
+        updateLoadingStatus(message) {
+            const statusElement = document.getElementById('loading-status');
+            if (statusElement) {
+                statusElement.textContent = message;
             }
-            
-            // Reset retry count for manual retry
-            this.retryAttempts.delete(errorType);
-            
-            try {
-                this.showRecoveryMessage(`Manual retry: ${strategy.message}`);
-                const success = await strategy.action();
-                
-                if (success) {
-                    this.hideRecoveryMessage();
-                    console.log(`ErrorRecoveryManager: Manual retry successful for ${errorType}`);
-                } else {
-                    console.log(`ErrorRecoveryManager: Manual retry failed for ${errorType}`);
-                }
-                
-                return success;
-            } catch (error) {
-                console.error(`ErrorRecoveryManager: Manual retry error for ${errorType}:`, error);
-                return false;
-            }
+            console.log(`InitializationRecovery: ${message}`);
         }
-        
+
         /**
-         * Get recovery statistics
-         * @returns {Object} - Recovery statistics
+         * Notify recovery success callbacks
          */
-        getRecoveryStats() {
+        notifyRecoverySuccess() {
+            console.log('InitializationRecovery: Recovery successful');
+            
+            this.recoveryCallbacks.forEach(callback => {
+                try {
+                    callback(this.recoveryAttempts, this.recoveryStrategies);
+                } catch (callbackError) {
+                    console.error('InitializationRecovery: Error in recovery callback:', callbackError);
+                }
+            });
+            
+            // Update UI to show recovery success
+            this.updateLoadingStatus('Recovery successful - initializing...');
+        }
+
+        /**
+         * Get current recovery status
+         */
+        getRecoveryStatus() {
             return {
-                totalRetryAttempts: Array.from(this.retryAttempts.values()).reduce((sum, count) => sum + count, 0),
-                retryAttemptsByType: Object.fromEntries(this.retryAttempts),
-                availableStrategies: Array.from(this.recoveryStrategies.keys()),
-                isRecovering: this.isRecovering
+                state: this.initializationState,
+                attempts: this.recoveryAttempts,
+                maxAttempts: this.maxRecoveryAttempts,
+                strategies: [...this.recoveryStrategies],
+                fallbackMode: this.fallbackMode,
+                lastError: this.lastError
             };
         }
-        
+
         /**
-         * Reset recovery statistics
+         * Utility method for delays
          */
-        resetStats() {
-            this.retryAttempts.clear();
-            this.isRecovering = false;
-            console.log('ErrorRecoveryManager: Recovery statistics reset');
+        delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
         }
     }
+
+    // Create global instance
+    window.InitializationRecovery = InitializationRecovery;
     
-    // Expose ErrorRecoveryManager to global scope
-    window.ErrorRecoveryManager = ErrorRecoveryManager;
+    // Create singleton instance for immediate use
+    window.initializationRecovery = new InitializationRecovery();
     
-    console.log('ErrorRecoveryManager: Class definition loaded');
-    
-})(); // End of IIFE
+    console.log('InitializationRecovery system loaded');
+
+})();

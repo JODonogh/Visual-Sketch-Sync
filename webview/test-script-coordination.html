@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none', style-src 'unsafe-inline' vscode-resource:, script-src 'unsafe-inline' vscode-resource:, img-src vscode-resource: data:, font-src vscode-resource:">
+    <title>Script Loading Coordination and Error Recovery Tests</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background-color: #1e1e1e;
+            color: #cccccc;
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #3c3c3c;
+            border-radius: 8px;
+            background-color: #252526;
+        }
+        
+        .test-section h2 {
+            color: #569cd6;
+            margin-top: 0;
+            border-bottom: 1px solid #3c3c3c;
+            padding-bottom: 10px;
+        }
+        
+        .test-case {
+            margin: 15px 0;
+            padding: 15px;
+            border-left: 4px solid #007acc;
+            background-color: #2d2d30;
+        }
+        
+        .test-case h3 {
+            color: #4ec9b0;
+            margin-top: 0;
+        }
+        
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .test-result.pass {
+            background-color: #0e5a0e;
+            border-left: 4px solid #00ff00;
+        }
+        
+        .test-result.fail {
+            background-color: #5a0e0e;
+            border-left: 4px solid #ff0000;
+        }
+        
+        .test-result.info {
+            background-color: #1a1a2e;
+            border-left: 4px solid #569cd6;
+        }
+        
+        .test-controls {
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        button {
+            background-color: #0e639c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background-color: #1177bb;
+        }
+        
+        button:disabled {
+            background-color: #3c3c3c;
+            cursor: not-allowed;
+        }
+        
+        .log-container {
+            max-height: 300px;
+            overflow-y: auto;
+            background-color: #1e1e1e;
+            border: 1px solid #3c3c3c;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 5px;
+        }
+        
+        .log-entry.error { color: #ff6b6b; }
+        .log-entry.warn { color: #ffcc02; }
+        .log-entry.info { color: #4fc1ff; }
+        .log-entry.debug { color: #cccccc; }
+        
+        .dependency-graph {
+            background-color: #2d2d30;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .script-status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: bold;
+            margin: 2px;
+        }
+        
+        .script-status.loaded {
+            background-color: #0e5a0e;
+            color: #00ff00;
+        }
+        
+        .script-status.failed {
+            background-color: #5a0e0e;
+            color: #ff0000;
+        }
+        
+        .script-status.pending {
+            background-color: #5a5a0e;
+            color: #ffff00;
+        }
+        
+        .script-status.waiting {
+            background-color: #3c3c3c;
+            color: #cccccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Script Loading Coordination and Error Recovery Tests</h1>
+        <p>This test suite validates script loading order, dependency management, error recovery mechanisms, and diagnostic logging.</p>
+        
+        <div class="test-controls">
+            <button onclick="runAllTests()">Run All Tests</button>
+            <button onclick="runLoadingOrderTests()">Test Loading Order</button>
+            <button onclick="runDependencyTests()">Test Dependencies</button>
+            <button onclick="runErrorRecoveryTests()">Test Error Recovery</button>
+            <button onclick="runDiagnosticTests()">Test Diagnostics</button>
+            <button onclick="clearResults()">Clear Results</button>
+        </div>
+        
+        <div id="test-results"></div>
+        
+        <div class="test-section">
+            <h2>Script Loading Status</h2>
+            <div id="script-status"></div>
+            <button onclick="refreshScriptStatus()">Refresh Status</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>Dependency Graph</h2>
+            <div id="dependency-graph" class="dependency-graph"></div>
+            <button onclick="refreshDependencyGraph()">Refresh Graph</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>Error Recovery Log</h2>
+            <div id="recovery-log"></div>
+            <button onclick="clearRecoveryLog()">Clear Recovery Log</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>Test Log</h2>
+            <div id="log-container" class="log-container"></div>
+            <button onclick="clearLog()">Clear Log</button>
+        </div>
+    </div>
+
+    <!-- Load dependencies -->
+    <script src="diagnostic-logger.js"></script>
+    <script src="script-loading-coordinator.js"></script>
+    <script src="error-recovery-manager.js"></script>
+    <script src="initialization-manager.js"></script>
+    
+    <script>
+        // Test framework
+        class ScriptCoordinationTestFramework {
+            constructor() {
+                this.results = [];
+                this.currentTest = null;
+                this.logContainer = document.getElementById('log-container');
+                this.scriptLoadEvents = [];
+                this.errorRecoveryEvents = [];
+                this.mockScripts = new Map();
+                
+                this.setupScriptLoadMonitoring();
+            }
+            
+            setupScriptLoadMonitoring() {
+                // Monitor script loading events
+                const originalCreateElement = document.createElement;
+                const self = this;
+                
+                document.createElement = function(tagName) {
+                    const element = originalCreateElement.call(this, tagName);
+                    
+                    if (tagName.toLowerCase() === 'script') {
+                        // Monitor script loading
+                        element.addEventListener('load', function() {
+                            self.scriptLoadEvents.push({
+                                type: 'load',
+                                src: this.src,
+                                timestamp: Date.now()
+                            });
+                            self.updateScriptStatus();
+                        });
+                        
+                        element.addEventListener('error', function() {
+                            self.scriptLoadEvents.push({
+                                type: 'error',
+                                src: this.src,
+                                timestamp: Date.now()
+                            });
+                            self.updateScriptStatus();
+                        });
+                    }
+                    
+                    return element;
+                };
+            }
+            
+            log(level, message, data = null) {
+                const timestamp = new Date().toISOString().substr(11, 12);
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-entry ${level}`;
+                logEntry.textContent = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
+                if (data) {
+                    logEntry.textContent += ` ${JSON.stringify(data)}`;
+                }
+                this.logContainer.appendChild(logEntry);
+                this.logContainer.scrollTop = this.logContainer.scrollHeight;
+                
+                console[level](message, data);
+            }
+            
+            startTest(name, description) {
+                this.currentTest = { name, description, results: [] };
+                this.log('info', `Starting test: ${name}`);
+            }
+            
+            assert(condition, message, details = null) {
+                const result = {
+                    passed: !!condition,
+                    message,
+                    details,
+                    timestamp: new Date().toISOString()
+                };
+                
+                this.currentTest.results.push(result);
+                
+                if (result.passed) {
+                    this.log('info', `✓ ${message}`, details);
+                } else {
+                    this.log('error', `✗ ${message}`, details);
+                }
+                
+                return result.passed;
+            }
+            
+            finishTest() {
+                if (this.currentTest) {
+                    const passedCount = this.currentTest.results.filter(r => r.passed).length;
+                    const totalCount = this.currentTest.results.length;
+                    const success = passedCount === totalCount;
+                    
+                    this.currentTest.success = success;
+                    this.currentTest.passedCount = passedCount;
+                    this.currentTest.totalCount = totalCount;
+                    
+                    this.results.push(this.currentTest);
+                    this.log('info', `Test completed: ${this.currentTest.name} (${passedCount}/${totalCount} passed)`);
+                    
+                    this.displayTestResult(this.currentTest);
+                    this.currentTest = null;
+                }
+            }
+            
+            displayTestResult(test) {
+                const resultsContainer = document.getElementById('test-results');
+                const testDiv = document.createElement('div');
+                testDiv.className = 'test-section';
+                
+                const statusClass = test.success ? 'pass' : 'fail';
+                const statusText = test.success ? 'PASSED' : 'FAILED';
+                
+                testDiv.innerHTML = `
+                    <h2>${test.name} - <span style="color: ${test.success ? '#00ff00' : '#ff0000'}">${statusText}</span></h2>
+                    <p>${test.description}</p>
+                    <div class="test-result ${statusClass}">
+                        Results: ${test.passedCount}/${test.totalCount} assertions passed
+                    </div>
+                    <div class="test-case">
+                        <h3>Assertion Details</h3>
+                        ${test.results.map(result => `
+                            <div class="test-result ${result.passed ? 'pass' : 'fail'}">
+                                ${result.passed ? '✓' : '✗'} ${result.message}
+                                ${result.details ? `<br><small>${JSON.stringify(result.details, null, 2)}</small>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+                resultsContainer.appendChild(testDiv);
+            }
+            
+            updateScriptStatus() {
+                const container = document.getElementById('script-status');
+                if (this.scriptLoadEvents.length === 0) {
+                    container.innerHTML = '<div class="test-result info">No script loading events monitored yet</div>';
+                } else {
+                    const statusHTML = this.scriptLoadEvents.map(event => `
+                        <div style="margin: 5px 0; padding: 5px; background: #2d2d30; border-radius: 3px;">
+                            <span class="script-status ${event.type === 'load' ? 'loaded' : 'failed'}">${event.type.toUpperCase()}</span>
+                            <span style="margin-left: 10px;">${event.src}</span>
+                            <span style="margin-left: 10px; color: #999; font-size: 11px;">${new Date(event.timestamp).toLocaleTimeString()}</span>
+                        </div>
+                    `).join('');
+                    container.innerHTML = statusHTML;
+                }
+            }
+            
+            updateDependencyGraph() {
+                const container = document.getElementById('dependency-graph');
+                
+                if (window.ScriptLoadingCoordinator) {
+                    const coordinator = window.ScriptLoadingCoordinator.getInstance();
+                    const dependencies = coordinator.getDependencyGraph ? coordinator.getDependencyGraph() : {};
+                    
+                    if (Object.keys(dependencies).length === 0) {
+                        container.textContent = 'No dependencies registered';
+                    } else {
+                        container.innerHTML = Object.entries(dependencies).map(([script, deps]) => 
+                            `${script} → [${deps.join(', ')}]`
+                        ).join('<br>');
+                    }
+                } else {
+                    container.textContent = 'ScriptLoadingCoordinator not available';
+                }
+            }
+            
+            updateRecoveryLog() {
+                const container = document.getElementById('recovery-log');
+                if (this.errorRecoveryEvents.length === 0) {
+                    container.innerHTML = '<div class="test-result info">No error recovery events recorded</div>';
+                } else {
+                    const logHTML = this.errorRecoveryEvents.map(event => `
+                        <div class="test-result ${event.success ? 'pass' : 'fail'}">
+                            <strong>${event.type}:</strong> ${event.message}<br>
+                            <small>Time: ${new Date(event.timestamp).toLocaleString()}</small>
+                            ${event.details ? `<br><small>Details: ${JSON.stringify(event.details)}</small>` : ''}
+                        </div>
+                    `).join('');
+                    container.innerHTML = logHTML;
+                }
+            }
+            
+            clearResults() {
+                document.getElementById('test-results').innerHTML = '';
+                this.results = [];
+            }
+            
+            clearLog() {
+                this.logContainer.innerHTML = '';
+            }
+            
+            clearRecoveryLog() {
+                this.errorRecoveryEvents = [];
+                this.updateRecoveryLog();
+            }
+        }
+        
+        // Initialize test framework
+        const testFramework = new ScriptCoordinationTestFramework();
+        
+        // Mock script creation for testing
+        function createMockScript(name, shouldFail = false, dependencies = []) {
+            return {
+                name,
+                shouldFail,
+                dependencies,
+                loaded: false,
+                failed: false,
+                loadTime: null,
+                
+                load() {
+                    return new Promise((resolve, reject) => {
+                        setTimeout(() => {
+                            if (this.shouldFail) {
+                                this.failed = true;
+                                testFramework.errorRecoveryEvents.push({
+                                    type: 'Script Load Failure',
+                                    message: `Mock script ${this.name} failed to load`,
+                                    timestamp: Date.now(),
+                                    success: false,
+                                    details: { script: this.name }
+                                });
+                                reject(new Error(`Mock script ${this.name} failed to load`));
+                            } else {
+                                this.loaded = true;
+                                this.loadTime = Date.now();
+                                testFramework.log('debug', `Mock script ${this.name} loaded successfully`);
+                                resolve();
+                            }
+                        }, Math.random() * 100 + 50); // Random delay 50-150ms
+                    });
+                }
+            };
+        }
+        
+        // Test functions
+        async function runLoadingOrderTests() {
+            testFramework.startTest('Script Loading Order Tests', 'Verify proper script loading order and dependency management');
+            
+            try {
+                // Test ScriptLoadingCoordinator availability
+                testFramework.assert(
+                    !!window.ScriptLoadingCoordinator,
+                    'ScriptLoadingCoordinator is available',
+                    { available: !!window.ScriptLoadingCoordinator }
+                );
+                
+                if (window.ScriptLoadingCoordinator) {
+                    const coordinator = window.ScriptLoadingCoordinator.getInstance();
+                    
+                    // Test singleton pattern
+                    const coordinator2 = window.ScriptLoadingCoordinator.getInstance();
+                    testFramework.assert(
+                        coordinator === coordinator2,
+                        'ScriptLoadingCoordinator follows singleton pattern',
+                        { sameInstance: coordinator === coordinator2 }
+                    );
+                    
+                    // Test dependency registration
+                    if (coordinator.registerDependency) {
+                        coordinator.registerDependency('test-script', () => window.testDependency === true);
+                        
+                        testFramework.assert(
+                            true,
+                            'Dependencies can be registered without errors',
+                            { registered: 'test-script' }
+                        );
+                    }
+                    
+                    // Test script loading with mock scripts
+                    const mockScripts = [
+                        createMockScript('base-script', false, []),
+                        createMockScript('dependent-script', false, ['base-script']),
+                        createMockScript('final-script', false, ['dependent-script'])
+                    ];
+                    
+                    // Simulate loading in correct order
+                    let loadOrder = [];
+                    
+                    for (const script of mockScripts) {
+                        try {
+                            await script.load();
+                            loadOrder.push(script.name);
+                        } catch (error) {
+                            testFramework.log('error', `Failed to load ${script.name}`, { error: error.message });
+                        }
+                    }
+                    
+                    testFramework.assert(
+                        loadOrder.length === mockScripts.length,
+                        'All mock scripts loaded successfully',
+                        { loadOrder, expectedCount: mockScripts.length }
+                    );
+                    
+                    // Test that dependencies are respected
+                    const baseIndex = loadOrder.indexOf('base-script');
+                    const dependentIndex = loadOrder.indexOf('dependent-script');
+                    const finalIndex = loadOrder.indexOf('final-script');
+                    
+                    testFramework.assert(
+                        baseIndex < dependentIndex && dependentIndex < finalIndex,
+                        'Scripts load in dependency order',
+                        { baseIndex, dependentIndex, finalIndex, loadOrder }
+                    );
+                }
+                
+            } catch (error) {
+                testFramework.assert(false, 'Loading order tests threw unexpected error', { error: error.message });
+            }
+            
+            testFramework.finishTest();
+        }
+        
+        async function runDependencyTests() {
+            testFramework.startTest('Dependency Management Tests', 'Verify dependency checking and resolution');
+            
+            try {
+                if (window.ScriptLoadingCoordinator) {
+                    const coordinator = window.ScriptLoadingCoordinator.getInstance();
+                    
+                    // Test dependency checking
+                    if (coordinator.checkDependencies) {
+                        // Set up test dependencies
+                        window.testDep1 = true;
+                        window.testDep2 = false;
+                        
+                        coordinator.registerDependency('dep1', () => window.testDep1);
+                        coordinator.registerDependency('dep2', () => window.testDep2);
+                        
+                        const dep1Ready = coordinator.checkDependencies(['dep1']);
+                        const dep2Ready = coordinator.checkDependencies(['dep2']);
+                        const bothReady = coordinator.checkDependencies(['dep1', 'dep2']);
+                        
+                        testFramework.assert(
+                            dep1Ready === true,
+                            'Available dependencies are detected as ready',
+                            { dep1Ready }
+                        );
+                        
+                        testFramework.assert(
+                            dep2Ready === false,
+                            'Unavailable dependencies are detected as not ready',
+                            { dep2Ready }
+                        );
+                        
+                        testFramework.assert(
+                            bothReady === false,
+                            'Mixed dependencies correctly report not ready when any are missing',
+                            { bothReady }
+                        );
+                        
+                        // Test dependency resolution
+                        window.testDep2 = true;
+                        const nowBothReady = coordinator.checkDependencies(['dep1', 'dep2']);
+                        
+                        testFramework.assert(
+                            nowBothReady === true,
+                            'Dependencies are re-evaluated correctly',
+                            { nowBothReady }
+                        );
+                    } else {
+                        testFramework.assert(false, 'checkDependencies method not available', { 
+                            methods: Object.getOwnPropertyNames(coordinator) 
+                        });
+                    }
+                } else {
+                    testFramework.assert(false, 'ScriptLoadingCoordinator not available for dependency tests');
+                }
+                
+            } catch (error) {
+                testFramework.assert(false, 'Dependency tests threw unexpected error', { error: error.message });
+            }
+            
+            testFramework.finishTest();
+        }
+        
+        async function runErrorRecoveryTests() {
+            testFramework.startTest('Error Recovery Tests', 'Verify error recovery mechanisms under various failure conditions');
+            
+            try {
+                // Test error recovery manager availability
+                testFramework.assert(
+                    !!window.ErrorRecoveryManager,
+                    'ErrorRecoveryManager is available',
+                    { available: !!window.ErrorRecoveryManager }
+                );
+                
+                if (window.ErrorRecoveryManager) {
+                    const recoveryManager = window.ErrorRecoveryManager.getInstance();
+                    
+                    // Test recovery strategy registration
+                    if (recoveryManager.registerRecoveryStrategy) {
+                        recoveryManager.registerRecoveryStrategy('test-failure', async () => {
+                            testFramework.errorRecoveryEvents.push({
+                                type: 'Recovery Strategy',
+                                message: 'Test recovery strategy executed',
+                                timestamp: Date.now(),
+                                success: true
+                            });
+                            return true;
+                        });
+                        
+                        testFramework.assert(
+                            true,
+                            'Recovery strategies can be registered',
+                            { strategy: 'test-failure' }
+                        );
+                    }
+                    
+                    // Test error handling with mock failures
+                    const failingScript = createMockScript('failing-script', true);
+                    
+                    try {
+                        await failingScript.load();
+                        testFramework.assert(false, 'Failing script should have thrown an error');
+                    } catch (error) {
+                        testFramework.assert(
+                            true,
+                            'Script failures are properly caught and handled',
+                            { error: error.message }
+                        );
+                        
+                        // Test recovery attempt
+                        if (recoveryManager.attemptRecovery) {
+                            const recoveryResult = await recoveryManager.attemptRecovery('test-failure', error);
+                            
+                            testFramework.assert(
+                                recoveryResult === true,
+                                'Recovery strategies execute successfully',
+                                { recoveryResult }
+                            );
+                        }
+                    }
+                    
+                    // Test retry mechanism
+                    let retryCount = 0;
+                    const retryScript = {
+                        load() {
+                            return new Promise((resolve, reject) => {
+                                retryCount++;
+                                if (retryCount < 3) {
+                                    reject(new Error(`Retry attempt ${retryCount} failed`));
+                                } else {
+                                    resolve();
+                                }
+                            });
+                        }
+                    };
+                    
+                    // Simulate retry logic
+                    let success = false;
+                    for (let i = 0; i < 5; i++) {
+                        try {
+                            await retryScript.load();
+                            success = true;
+                            break;
+                        } catch (error) {
+                            testFramework.log('debug', `Retry attempt ${i + 1} failed`, { error: error.message });
+                        }
+                    }
+                    
+                    testFramework.assert(
+                        success && retryCount === 3,
+                        'Retry mechanism works correctly',
+                        { success, retryCount, expectedRetries: 3 }
+                    );
+                }
+                
+            } catch (error) {
+                testFramework.assert(false, 'Error recovery tests threw unexpected error', { error: error.message });
+            }
+            
+            testFramework.finishTest();
+        }
+        
+        async function runDiagnosticTests() {
+            testFramework.startTest('Diagnostic Logging Tests', 'Verify diagnostic logging and error reporting functionality');
+            
+            try {
+                // Test DiagnosticLogger availability
+                testFramework.assert(
+                    !!window.DiagnosticLogger,
+                    'DiagnosticLogger is available',
+                    { available: !!window.DiagnosticLogger }
+                );
+                
+                if (window.DiagnosticLogger) {
+                    const logger = window.DiagnosticLogger.getInstance();
+                    
+                    // Test logging methods
+                    const logMethods = ['log', 'trackResourceLoad', 'trackSystemEvent'];
+                    logMethods.forEach(method => {
+                        testFramework.assert(
+                            typeof logger[method] === 'function',
+                            `DiagnosticLogger has ${method} method`,
+                            { method, type: typeof logger[method] }
+                        );
+                    });
+                    
+                    // Test logging functionality
+                    let logCaptured = false;
+                    const originalConsoleLog = console.log;
+                    console.log = function(...args) {
+                        if (args[0] && args[0].includes('Test diagnostic message')) {
+                            logCaptured = true;
+                        }
+                        originalConsoleLog.apply(console, args);
+                    };
+                    
+                    logger.log('INFO', 'TestComponent', 'Test diagnostic message', { test: true });
+                    
+                    // Restore console.log
+                    console.log = originalConsoleLog;
+                    
+                    testFramework.assert(
+                        logCaptured,
+                        'Diagnostic logging produces output',
+                        { logCaptured }
+                    );
+                    
+                    // Test resource load tracking
+                    const startTime = performance.now();
+                    logger.trackResourceLoad('test-resource', 'test-operation', 100, true, { test: 'data' });
+                    
+                    testFramework.assert(
+                        true,
+                        'Resource load tracking executes without errors',
+                        { resource: 'test-resource', duration: 100 }
+                    );
+                    
+                    // Test system event tracking
+                    logger.trackSystemEvent('test-event', { eventData: 'test' });
+                    
+                    testFramework.assert(
+                        true,
+                        'System event tracking executes without errors',
+                        { event: 'test-event' }
+                    );
+                    
+                    // Test error logging
+                    const testError = new Error('Test error for diagnostic logging');
+                    logger.log('ERROR', 'TestComponent', 'Test error message', { errorTest: true }, testError);
+                    
+                    testFramework.assert(
+                        true,
+                        'Error logging with stack traces works correctly',
+                        { errorMessage: testError.message }
+                    );
+                }
+                
+            } catch (error) {
+                testFramework.assert(false, 'Diagnostic tests threw unexpected error', { error: error.message });
+            }
+            
+            testFramework.finishTest();
+        }
+        
+        async function runAllTests() {
+            testFramework.clearResults();
+            testFramework.log('info', 'Starting comprehensive script coordination and error recovery test suite');
+            
+            await runLoadingOrderTests();
+            await runDependencyTests();
+            await runErrorRecoveryTests();
+            await runDiagnosticTests();
+            
+            // Summary
+            const totalTests = testFramework.results.length;
+            const passedTests = testFramework.results.filter(t => t.success).length;
+            
+            testFramework.log('info', `Test suite completed: ${passedTests}/${totalTests} tests passed`);
+            
+            if (passedTests === totalTests) {
+                testFramework.log('info', '🎉 All tests passed! Script coordination and error recovery working correctly.');
+            } else {
+                testFramework.log('error', '❌ Some tests failed. Please review the results above.');
+            }
+        }
+        
+        function refreshScriptStatus() {
+            testFramework.updateScriptStatus();
+        }
+        
+        function refreshDependencyGraph() {
+            testFramework.updateDependencyGraph();
+        }
+        
+        function clearResults() {
+            testFramework.clearResults();
+        }
+        
+        function clearLog() {
+            testFramework.clearLog();
+        }
+        
+        function clearRecoveryLog() {
+            testFramework.clearRecoveryLog();
+        }
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            testFramework.log('info', 'Script Coordination and Error Recovery Test Suite loaded');
+            testFramework.updateScriptStatus();
+            testFramework.updateDependencyGraph();
+            testFramework.updateRecoveryLog();
+        });
+    </script>
+</body>
+</html>

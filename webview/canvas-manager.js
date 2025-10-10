@@ -77,12 +77,34 @@ class VSSCanvasManager {
                 }
             }, timeout);
             
-            // Initialize VS Code API using singleton pattern
-            if (!window.vscodeApi && typeof acquireVsCodeApi === 'function') {
-                window.vscodeApi = acquireVsCodeApi();
-                console.log('VSSCanvasManager: VS Code API acquired');
+            // Initialize VS Code API using centralized manager
+            if (window.vscodeAPIManager) {
+                // Use VSCodeAPIManager for centralized API access
+                const api = window.vscodeAPIManager.getAPI();
+                if (api) {
+                    console.log('VSSCanvasManager: Using VS Code API from centralized manager');
+                    this.vscode = api;
+                } else {
+                    console.log('VSSCanvasManager: Waiting for VS Code API to become available...');
+                    this.vscode = null;
+                    
+                    // Register callback for when API becomes ready
+                    window.vscodeAPIManager.onAPIReady((api) => {
+                        if (api) {
+                            console.log('VSSCanvasManager: VS Code API ready via callback');
+                            this.vscode = api;
+                        }
+                    });
+                }
+            } else {
+                console.warn('VSSCanvasManager: VSCodeAPIManager not available, falling back to direct acquisition');
+                // Fallback to direct acquisition (should be avoided)
+                if (!window.vscodeApi && typeof acquireVsCodeApi === 'function') {
+                    window.vscodeApi = acquireVsCodeApi();
+                    console.log('VSSCanvasManager: VS Code API acquired directly (fallback)');
+                }
+                this.vscode = window.vscodeApi || null;
             }
-            this.vscode = window.vscodeApi || null;
             
             // Get DOM element references
             this.getDOMReferences();

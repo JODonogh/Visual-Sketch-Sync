@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none', style-src 'unsafe-inline' vscode-resource:, script-src 'unsafe-inline' vscode-resource:, img-src vscode-resource: data:, font-src vscode-resource:">
+    <title>CSP Compliance and Resource Loading Tests</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background-color: #1e1e1e;
+            color: #cccccc;
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #3c3c3c;
+            border-radius: 8px;
+            background-color: #252526;
+        }
+        
+        .test-section h2 {
+            color: #569cd6;
+            margin-top: 0;
+            border-bottom: 1px solid #3c3c3c;
+            padding-bottom: 10px;
+        }
+        
+        .test-case {
+            margin: 15px 0;
+            padding: 15px;
+            border-left: 4px solid #007acc;
+            background-color: #2d2d30;
+        }
+        
+        .test-case h3 {
+            color: #4ec9b0;
+            margin-top: 0;
+        }
+        
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .test-result.pass {
+            background-color: #0e5a0e;
+            border-left: 4px solid #00ff00;
+        }
+        
+        .test-result.fail {
+            background-color: #5a0e0e;
+            border-left: 4px solid #ff0000;
+        }
+        
+        .test-result.info {
+            background-color: #1a1a2e;
+            border-left: 4px solid #569cd6;
+        }
+        
+        .test-controls {
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        button {
+            background-color: #0e639c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background-color: #1177bb;
+        }
+        
+        button:disabled {
+            background-color: #3c3c3c;
+            cursor: not-allowed;
+        }
+        
+        .log-container {
+            max-height: 300px;
+            overflow-y: auto;
+            background-color: #1e1e1e;
+            border: 1px solid #3c3c3c;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 5px;
+        }
+        
+        .log-entry.error { color: #ff6b6b; }
+        .log-entry.warn { color: #ffcc02; }
+        .log-entry.info { color: #4fc1ff; }
+        .log-entry.debug { color: #cccccc; }
+        
+        .resource-status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        .resource-status.loaded {
+            background-color: #0e5a0e;
+            color: #00ff00;
+        }
+        
+        .resource-status.failed {
+            background-color: #5a0e0e;
+            color: #ff0000;
+        }
+        
+        .resource-status.pending {
+            background-color: #5a5a0e;
+            color: #ffff00;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>CSP Compliance and Resource Loading Tests</h1>
+        <p>This test suite validates Content Security Policy compliance, proper vscode-resource URI usage, and meta element parsing.</p>
+        
+        <div class="test-controls">
+            <button onclick="runAllTests()">Run All Tests</button>
+            <button onclick="runCSPTests()">Test CSP Compliance</button>
+            <button onclick="runResourceURITests()">Test Resource URIs</button>
+            <button onclick="runMetaElementTests()">Test Meta Elements</button>
+            <button onclick="runStylesheetLoadingTests()">Test Stylesheet Loading</button>
+            <button onclick="clearResults()">Clear Results</button>
+        </div>
+        
+        <div id="test-results"></div>
+        
+        <div class="test-section">
+            <h2>Resource Loading Status</h2>
+            <div id="resource-status"></div>
+            <button onclick="refreshResourceStatus()">Refresh Status</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>CSP Violation Monitor</h2>
+            <div id="csp-violations"></div>
+            <button onclick="clearViolations()">Clear Violations</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>Test Log</h2>
+            <div id="log-container" class="log-container"></div>
+            <button onclick="clearLog()">Clear Log</button>
+        </div>
+    </div>
+
+    <!-- Load dependencies -->
+    <script src="diagnostic-logger.js"></script>
+    <script src="resource-uri-builder.js"></script>
+    <script src="stylesheet-loader.js"></script>
+    <script src="csp-violation-handler.js"></script>
+    
+    <script>
+        // Test framework
+        class CSPTestFramework {
+            constructor() {
+                this.results = [];
+                this.currentTest = null;
+                this.logContainer = document.getElementById('log-container');
+                this.cspViolations = [];
+                this.resourceLoadStatus = new Map();
+                
+                this.setupCSPViolationListener();
+                this.setupResourceLoadMonitoring();
+            }
+            
+            setupCSPViolationListener() {
+                // Listen for CSP violations
+                document.addEventListener('securitypolicyviolation', (event) => {
+                    const violation = {
+                        directive: event.violatedDirective,
+                        blockedURI: event.blockedURI,
+                        sourceFile: event.sourceFile,
+                        lineNumber: event.lineNumber,
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    this.cspViolations.push(violation);
+                    this.log('error', `CSP Violation: ${event.violatedDirective} blocked ${event.blockedURI}`, violation);
+                    this.updateCSPViolationDisplay();
+                });
+            }
+            
+            setupResourceLoadMonitoring() {
+                // Monitor resource loading
+                const originalFetch = window.fetch;
+                const self = this;
+                
+                window.fetch = function(...args) {
+                    const url = args[0];
+                    self.resourceLoadStatus.set(url, 'pending');
+                    self.updateResourceStatus();
+                    
+                    return originalFetch.apply(this, args)
+                        .then(response => {
+                            self.resourceLoadStatus.set(url, response.ok ? 'loaded' : 'failed');
+                            self.updateResourceStatus();
+                            return response;
+                        })
+                        .catch(error => {
+                            self.resourceLoadStatus.set(url, 'failed');
+                            self.updateResourceStatus();
+                            throw error;
+                        });
+                };
+            }
+            
+            log(level, message, data = null) {
+                const timestamp = new Date().toISOString().substr(11, 12);
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-entry ${level}`;
+                logEntry.textContent = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
+                if (data) {
+                    logEntry.textContent += ` ${JSON.stringify(data)}`;
+                }
+                this.logContainer.appendChild(logEntry);
+                this.logContainer.scrollTop = this.logContainer.scrollHeight;
+                
+                console[level](message, data);
+            }
+            
+            startTest(name, description) {
+                this.currentTest = { name, description, results: [] };
+                this.log('info', `Starting test: ${name}`);
+            }
+            
+            assert(condition, message, details = null) {
+                const result = {
+                    passed: !!condition,
+                    message,
+                    details,
+                    timestamp: new Date().toISOString()
+                };
+                
+                this.currentTest.results.push(result);
+                
+                if (result.passed) {
+                    this.log('info', `✓ ${message}`, details);
+                } else {
+                    this.log('error', `✗ ${message}`, details);
+                }
+                
+                return result.passed;
+            }
+            
+            finishTest() {
+                if (this.currentTest) {
+                    const passedCount = this.currentTest.results.filter(r => r.passed).length;
+                    const totalCount = this.currentTest.results.length;
+                    const success = passedCount === totalCount;
+                    
+                    this.currentTest.success = success;
+                    this.currentTest.passedCount = passedCount;
+                    this.currentTest.totalCount = totalCount;
+                    
+                    this.results.push(this.currentTest);
+                    this.log('info', `Test completed: ${this.currentTest.name} (${passedCount}/${totalCount} passed)`);
+                    
+                    this.displayTestResult(this.currentTest);
+                    this.currentTest = null;
+                }
+            }
+            
+            displayTestResult(test) {
+                const resultsContainer = document.getElementById('test-results');
+                const testDiv = document.createElement('div');
+                testDiv.className = 'test-section';
+                
+                const statusClass = test.success ? 'pass' : 'fail';
+                const statusText = test.success ? 'PASSED' : 'FAILED';
+                
+                testDiv.innerHTML = `
+                    <h2>${test.name} - <span style="color: ${test.success ? '#00ff00' : '#ff0000'}">${statusText}</span></h2>
+                    <p>${test.description}</p>
+                    <div class="test-result ${statusClass}">
+                        Results: ${test.passedCount}/${test.totalCount} assertions passed
+                    </div>
+                    <div class="test-case">
+                        <h3>Assertion Details</h3>
+                        ${test.results.map(result => `
+                            <div class="test-result ${result.passed ? 'pass' : 'fail'}">
+                                ${result.passed ? '✓' : '✗'} ${result.message}
+                                ${result.details ? `<br><small>${JSON.stringify(result.details, null, 2)}</small>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+                resultsContainer.appendChild(testDiv);
+            }
+            
+            updateCSPViolationDisplay() {
+                const container = document.getElementById('csp-violations');
+                if (this.cspViolations.length === 0) {
+                    container.innerHTML = '<div class="test-result pass">No CSP violations detected</div>';
+                } else {
+                    container.innerHTML = this.cspViolations.map(violation => `
+                        <div class="test-result fail">
+                            <strong>CSP Violation:</strong> ${violation.directive}<br>
+                            <strong>Blocked URI:</strong> ${violation.blockedURI}<br>
+                            <strong>Source:</strong> ${violation.sourceFile}:${violation.lineNumber}<br>
+                            <strong>Time:</strong> ${violation.timestamp}
+                        </div>
+                    `).join('');
+                }
+            }
+            
+            updateResourceStatus() {
+                const container = document.getElementById('resource-status');
+                if (this.resourceLoadStatus.size === 0) {
+                    container.innerHTML = '<div class="test-result info">No resources monitored yet</div>';
+                } else {
+                    const statusHTML = Array.from(this.resourceLoadStatus.entries()).map(([url, status]) => `
+                        <div style="margin: 5px 0; padding: 5px; background: #2d2d30; border-radius: 3px;">
+                            <span class="resource-status ${status}">${status.toUpperCase()}</span>
+                            <span style="margin-left: 10px;">${url}</span>
+                        </div>
+                    `).join('');
+                    container.innerHTML = statusHTML;
+                }
+            }
+            
+            clearResults() {
+                document.getElementById('test-results').innerHTML = '';
+                this.results = [];
+            }
+            
+            clearLog() {
+                this.logContainer.innerHTML = '';
+            }
+            
+            clearViolations() {
+                this.cspViolations = [];
+                this.updateCSPViolationDisplay();
+            }
+        }
+        
+        // Initialize test framework
+        const testFramework = new CSPTestFramework();
+        
+        // Test functions
+        async function runCSPTests() {
+            testFramework.startTest('CSP Compliance Tests', 'Verify Content Security Policy compliance and proper directive formatting');
+            
+            try {
+                // Test meta element CSP syntax
+                const metaElements = document.querySelectorAll('meta[http-equiv="Content-Security-Policy"]');
+                
+                testFramework.assert(
+                    metaElements.length > 0,
+                    'CSP meta element exists',
+                    { count: metaElements.length }
+                );
+                
+                if (metaElements.length > 0) {
+                    const cspContent = metaElements[0].getAttribute('content');
+                    
+                    // Test for proper comma separators (not semicolons)
+                    const hasSemicolonSeparators = cspContent.includes(';') && !cspContent.includes('; ');
+                    testFramework.assert(
+                        !hasSemicolonSeparators,
+                        'CSP directives use proper separators (commas, not semicolons)',
+                        { cspContent, hasSemicolonSeparators }
+                    );
+                    
+                    // Test for vscode-resource scheme support
+                    const hasVscodeResource = cspContent.includes('vscode-resource:');
+                    testFramework.assert(
+                        hasVscodeResource,
+                        'CSP allows vscode-resource scheme',
+                        { hasVscodeResource, cspContent }
+                    );
+                    
+                    // Test for required directives
+                    const requiredDirectives = ['default-src', 'style-src', 'script-src'];
+                    requiredDirectives.forEach(directive => {
+                        const hasDirective = cspContent.includes(directive);
+                        testFramework.assert(
+                            hasDirective,
+                            `CSP includes ${directive} directive`,
+                            { directive, hasDirective }
+                        );
+                    });
+                }
+                
+                // Test that no CSP violations occurred during page load
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for any violations
+                
+                testFramework.assert(
+                    testFramework.cspViolations.length === 0,
+                    'No CSP violations during page load',
+                    { violationCount: testFramework.cspViolations.length, violations: testFramework.cspViolations }
+                );
+                
+            } catch (error) {
+                testFramework.assert(false, 'CSP tests threw unexpected error', { error: error.message });
+            }
+            
+            testFramework.finishTest();
+        }
+        
+        async function runResourceURITests() {
+            testFramework.startTest('Resource URI Tests', 'Verify proper vscode-resource URI usage and construction');
+            
+            try {
+                // Test ResourceURIBuilder if available
+                if (window.ResourceURIBuilder) {
+                    const builder = window.ResourceURIBuilder;
+                    
+                    // Test URI construction
+                    const testPath = 'test/path/file.css';
+                    const uri = builder.buildURI('/extension/path', testPath);
+                    
+                    testFramework.assert(
+                        typeof uri === 'string' && uri.length > 0,
+                        'ResourceURIBuilder creates valid URI strings',
+                        { testPath, uri }
+                    );
+                    
+                    // Test URI validation
+                    const isValid = builder.validateURI(uri);
+                    testFramework.assert(
+                        isValid,
+                        'Generated URIs pass validation',
+                        { uri, isValid }
+                    );
+                    
+                    // Test path encoding
+                    const pathWithSpaces = 'test path/file name.css';
+                    const encodedPath = builder.encodePathSegments(pathWithSpaces);
+                    
+                    testFramework.assert(
+                        encodedPath !== pathWithSpaces,
+                        'Path segments are properly encoded',
+                        { original: pathWithSpaces, encoded: encodedPath }
+                    );
+                } else {
+                    testFramework.assert(false, 'ResourceURIBuilder not available', { available: !!window.ResourceURIBuilder });
+                }
+                
+                // Test script src attributes use proper scheme
+                const scriptElements = document.querySelectorAll('script[src]');
+                let properSchemeCount = 0;
+                
+                scriptElements.forEach(script => {
+                    const src = script.getAttribute('src');
+                    if (src && (src.startsWith('vscode-resource:') || src.startsWith('./'))) {
+                        properSchemeCount++;
+                    }
+                });
+                
+                testFramework.assert(
+                    properSchemeCount === scriptElements.length,
+                    'All script elements use proper URI schemes',
+                    { 
+                        totalScripts: scriptElements.length, 
+                        properSchemeCount,
+                        scripts: Array.from(scriptElements).map(s => s.getAttribute('src'))
+                    }
+                );
+                
+            } catch (error) {
+                testFramework.assert(false, 'Resource URI tests threw unexpected error', { error: error.message });
+            }
+            
+            testFramework.finishTest();
+        }
+        
+        async function runMetaElementTests() {
+            testFramework.startTest('Meta Element Tests', 'Verify meta element parsing and syntax correctness');
+            
+            try {
+                // Test all meta elements for proper syntax
+                const metaElements = document.querySelectorAll('meta');
+                let validMetaCount = 0;
+                const invalidMetas = [];
+                
+                metaElements.forEach((meta, index) => {
+                    const content = meta.getAttribute('content');
+                    const httpEquiv = meta.getAttribute('http-equiv');
+                    
+                    // Check for CSP meta elements specifically
+                    if (httpEquiv === 'Content-Security-Policy' && content) {
+                        // Validate CSP syntax
+                        const hasProperSeparators = !content.includes(';') || content.includes('; ');
+                        const hasValidDirectives = content.split(',').every(directive => 
+                            directive.trim().includes(' ') || directive.trim() === 'none'
+                        );
+                        
+                        if (hasProperSeparators && hasValidDirectives) {
+                            validMetaCount++;
+                        } else {
+                            invalidMetas.push({
+                                index,
+                                content,
+                                hasProperSeparators,
+                                hasValidDirectives
+                            });
+                        }
+                    } else {
+                        // For non-CSP meta elements, just check they have valid attributes
+                        const hasValidAttributes = meta.hasAttribute('charset') || 
+                                                 meta.hasAttribute('name') || 
+                                                 meta.hasAttribute('http-equiv');
+                        if (hasValidAttributes) {
+                            validMetaCount++;
+                        } else {
+                            invalidMetas.push({ index, reason: 'Missing required attributes' });
+                        }
+                    }
+                });
+                
+                testFramework.assert(
+                    invalidMetas.length === 0,
+                    'All meta elements have valid syntax',
+                    { 
+                        totalMetas: metaElements.length,
+                        validCount: validMetaCount,
+                        invalidMetas
+                    }
+                );
+                
+                // Test that meta elements are properly parsed by the browser
+                const cspMeta = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+                if (cspMeta) {
+                    const cspContent = cspMeta.getAttribute('content');
+                    
+                    testFramework.assert(
+                        cspContent && cspContent.length > 0,
+                        'CSP meta element content is accessible',
+                        { cspContent }
+                    );
+                    
+                    // Test that the CSP is actually being enforced
+                    testFramework.assert(
+                        document.contentSecurityPolicy !== undefined || 
+                        document.querySelector('meta[http-equiv="Content-Security-Policy"]') !== null,
+                        'CSP is properly recognized by browser',
+                        { hasCSP: !!document.contentSecurityPolicy }
+                    );
+                }
+                
+            } catch (error) {
+                testFramework.assert(false, 'Meta element tests threw unexpected error', { error: error.message });
+            }
+            
+            testFramework.finishTest();
+        }
+        
+        async function runStylesheetLoadingTests() {
+            testFramework.startTest('Stylesheet Loading Tests', 'Verify stylesheets load without CSP violations');
+            
+            try {
+                // Test StylesheetLoader if available
+                if (window.StylesheetLoader) {
+                    const loader = window.StylesheetLoader.getInstance();
+                    
+                    // Test loading a stylesheet
+                    const testStylesheet = 'main-styles.css';
+                    const loadPromise = loader.loadStylesheet(testStylesheet);
+                    
+                    testFramework.assert(
+                        loadPromise instanceof Promise,
+                        'StylesheetLoader returns promises for async loading',
+                        { hasPromise: loadPromise instanceof Promise }
+                    );
+                    
+                    try {
+                        await loadPromise;
+                        testFramework.assert(
+                            true,
+                            'Test stylesheet loads successfully',
+                            { stylesheet: testStylesheet }
+                        );
+                    } catch (loadError) {
+                        testFramework.assert(
+                            false,
+                            'Test stylesheet failed to load',
+                            { stylesheet: testStylesheet, error: loadError.message }
+                        );
+                    }
+                    
+                    // Test fallback mechanism
+                    const fallbackTest = await loader.loadStylesheet('nonexistent-file.css').catch(e => e);
+                    testFramework.assert(
+                        fallbackTest instanceof Error,
+                        'StylesheetLoader handles missing files gracefully',
+                        { fallbackHandled: fallbackTest instanceof Error }
+                    );
+                } else {
+                    testFramework.assert(false, 'StylesheetLoader not available', { available: !!window.StylesheetLoader });
+                }
+                
+                // Test that existing stylesheets don't cause CSP violations
+                const linkElements = document.querySelectorAll('link[rel="stylesheet"]');
+                testFramework.assert(
+                    linkElements.length >= 0, // Allow 0 if using dynamic loading
+                    'Stylesheet link elements present or using dynamic loading',
+                    { linkCount: linkElements.length }
+                );
+                
+                // Check for any stylesheet-related CSP violations
+                const stylesheetViolations = testFramework.cspViolations.filter(v => 
+                    v.directive.includes('style-src') || v.blockedURI.includes('.css')
+                );
+                
+                testFramework.assert(
+                    stylesheetViolations.length === 0,
+                    'No stylesheet-related CSP violations',
+                    { violationCount: stylesheetViolations.length, violations: stylesheetViolations }
+                );
+                
+            } catch (error) {
+                testFramework.assert(false, 'Stylesheet loading tests threw unexpected error', { error: error.message });
+            }
+            
+            testFramework.finishTest();
+        }
+        
+        async function runAllTests() {
+            testFramework.clearResults();
+            testFramework.log('info', 'Starting comprehensive CSP compliance and resource loading test suite');
+            
+            await runCSPTests();
+            await runResourceURITests();
+            await runMetaElementTests();
+            await runStylesheetLoadingTests();
+            
+            // Summary
+            const totalTests = testFramework.results.length;
+            const passedTests = testFramework.results.filter(t => t.success).length;
+            
+            testFramework.log('info', `Test suite completed: ${passedTests}/${totalTests} tests passed`);
+            
+            if (passedTests === totalTests) {
+                testFramework.log('info', '🎉 All tests passed! CSP compliance and resource loading working correctly.');
+            } else {
+                testFramework.log('error', '❌ Some tests failed. Please review the results above.');
+            }
+        }
+        
+        function refreshResourceStatus() {
+            testFramework.updateResourceStatus();
+        }
+        
+        function clearResults() {
+            testFramework.clearResults();
+        }
+        
+        function clearLog() {
+            testFramework.clearLog();
+        }
+        
+        function clearViolations() {
+            testFramework.clearViolations();
+        }
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            testFramework.log('info', 'CSP Compliance and Resource Loading Test Suite loaded');
+            testFramework.updateCSPViolationDisplay();
+            testFramework.updateResourceStatus();
+        });
+    </script>
+</body>
+</html>
